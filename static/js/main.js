@@ -342,7 +342,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </label>
                 </td>
                 <td>${task.task_name}</td>
-                <td><span class="tag">${task.keyword}</span></td>
+                <td><span class="tag" title="${task.keyword}">${task.keyword}</span></td>
                 <td>${task.min_price || '不限'} - ${task.max_price || '不限'}</td>
                 <td>${task.personal_only ? '<span class="tag personal">个人闲置</span>' : ''}</td>
                 <td>${(task.ai_prompt_criteria_file || 'N/A').replace('prompts/', '')}</td>

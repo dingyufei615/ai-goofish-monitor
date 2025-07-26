@@ -89,6 +89,18 @@ header h1 {
     border-color: #ff7875;
 }
 
+.control-button.danger-btn {
+    background-color: #ff4d4f;
+    color: white;
+    border-color: #ff4d4f;
+}
+
+.control-button.danger-btn:hover {
+    background-color: #ff7875;
+    border-color: #ff7875;
+    color: white;
+}
+
 
 .container {
     display: flex;
@@ -201,10 +213,20 @@ h2 {
 }
 
 .tasks-table th, .tasks-table td {
+    width: 100%;
     padding: 12px 16px;
     text-align: left;
     border-bottom: 1px solid #f0f0f0;
     vertical-align: middle;
+}
+.tasks-table td>span{
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: fit-content;
+    max-width: 30ch;
+
 }
 
 .tasks-table th {
@@ -219,9 +241,9 @@ h2 {
 
 .tag {
     background-color: #e6f7ff;
-    border: 1px solid #91d5ff;
+    border: 1px solid skyblue;
     color: #096dd9;
-    padding: 2px 8px;
+    padding: 2px 4px;
     border-radius: 4px;
     font-size: 12px;
 }
@@ -488,6 +510,12 @@ input:checked + .slider:before {
     gap: 12px;
 }
 
+.log-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 /* Log Viewer Styles */
 #log-content-container {
     background-color: #2b2b2b;
@@ -655,11 +683,8 @@ input:checked + .slider:before {
 .card-ai-summary p {
     margin: 0;
     color: #555;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: pre-wrap; /* Allow wrapping */
+    word-break: break-word; /* Break long words */
 }
 
 .card-footer {
@@ -671,6 +696,31 @@ input:checked + .slider:before {
     border-top: 1px solid #f0f0f0;
     padding-top: 12px;
     margin-top: auto;
+    gap: 16px;
+}
+
+.card-footer > div {
+    min-width: 0; /* Allow flex item to shrink and text to ellipsis */
+}
+
+.seller-info {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 4px;
+}
+
+.time-info p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.card-footer .action-btn {
+    flex-shrink: 0; /* Prevent the button from shrinking */
 }
 
 .view-json-btn {
