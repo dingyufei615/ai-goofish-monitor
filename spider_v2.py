@@ -917,6 +917,15 @@ async def scrape_xianyu(task_config: dict, debug_limit: int = 0):
                             else:
                                 print("   -> 任务未配置AI prompt，跳过分析。")
 
+                            # 删除下载的图片文件，节省空间
+                            for img_path in downloaded_image_paths:
+                                try:
+                                    if os.path.exists(img_path):
+                                        os.remove(img_path)
+                                        print(f"   [图片] 已删除临时图片文件: {img_path}")
+                                except Exception as e:
+                                    print(f"   [图片] 删除图片文件时出错: {e}")
+
                             # 3. Send notification if recommended
                             if ai_analysis_result and ai_analysis_result.get('is_recommended'):
                                 print(f"   -> 商品被AI推荐，准备发送通知...")
