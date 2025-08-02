@@ -3,9 +3,16 @@ import base64
 import json
 import os
 import re
+import sys
 from urllib.parse import urlencode, urlparse, urlunparse, parse_qsl
 
 import requests
+
+# 设置标准输出编码为UTF-8，解决Windows控制台编码问题
+if sys.platform.startswith('win'):
+    import codecs
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.detach())
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.detach())
 
 from src.config import (
     AI_DEBUG_MODE,
@@ -27,6 +34,19 @@ from src.config import (
     client,
 )
 from src.utils import convert_goofish_link, retry_on_failure
+
+
+def safe_print(text):
+    """安全的打印函数，处理编码错误"""
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        # 如果遇到编码错误，尝试用ASCII编码并忽略无法编码的字符
+        try:
+            print(text.encode('ascii', errors='ignore').decode('ascii'))
+        except:
+            # 如果还是失败，打印一个简化的消息
+            print("[输出包含无法显示的字符]")
 
 
 @retry_on_failure(retries=2, delay=3)
@@ -68,16 +88,16 @@ async def download_all_images(product_id, image_urls):
             save_path = os.path.join(IMAGE_SAVE_DIR, file_name)
 
             if os.path.exists(save_path):
-                print(f"   [图片] 图片 {i + 1}/{total_images} 已存在，跳过下载: {os.path.basename(save_path)}")
+                safe_print(f"   [图片] 图片 {i + 1}/{total_images} 已存在，跳过下载: {os.path.basename(save_path)}")
                 saved_paths.append(save_path)
                 continue
 
-            print(f"   [图片] 正在下载图片 {i + 1}/{total_images}: {url}")
+            safe_print(f"   [图片] 正在下载图片 {i + 1}/{total_images}: {url}")
             if await _download_single_image(url, save_path):
-                print(f"   [图片] 图片 {i + 1}/{total_images} 已成功下载到: {os.path.basename(save_path)}")
+                safe_print(f"   [图片] 图片 {i + 1}/{total_images} 已成功下载到: {os.path.basename(save_path)}")
                 saved_paths.append(save_path)
         except Exception as e:
-            print(f"   [图片] 处理图片 {url} 时发生错误，已跳过此图: {e}")
+            safe_print(f"   [图片] 处理图片 {url} 时发生错误，已跳过此图: {e}")
 
     return saved_paths
 
@@ -90,7 +110,7 @@ def encode_image_to_base64(image_path):
         with open(image_path, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode('utf-8')
     except Exception as e:
-        print(f"编码图片时出错: {e}")
+        safe_print(f"编码图片时出错: {e}")
         return None
 
 
@@ -98,7 +118,7 @@ def encode_image_to_base64(image_path):
 async def send_ntfy_notification(product_data, reason):
     """当发现推荐商品时，异步发送一个高优先级的 ntfy.sh 通知。"""
     if not NTFY_TOPIC_URL and not WX_BOT_URL and not (GOTIFY_URL and GOTIFY_TOKEN) and not BARK_URL and not WEBHOOK_URL:
-        print("警告：未在 .env 文件中配置任何通知服务 (NTFY_TOPIC_URL, WX_BOT_URL, GOTIFY_URL/TOKEN, BARK_URL, WEBHOOK_URL)，跳过通知。")
+        safe_print("警告：未在 .env 文件中配置任何通知服务 (NTFY_TOPIC_URL, WX_BOT_URL, GOTIFY_URL/TOKEN, BARK_URL, WEBHOOK_URL)，跳过通知。")
         return
 
     title = product_data.get('商品标题', 'N/A')
@@ -115,7 +135,7 @@ async def send_ntfy_notification(product_data, reason):
     # --- 发送 ntfy 通知 ---
     if NTFY_TOPIC_URL:
         try:
-            print(f"   -> 正在发送 ntfy 通知到: {NTFY_TOPIC_URL}")
+            safe_print(f"   -> 正在发送 ntfy 通知到: {NTFY_TOPIC_URL}")
             loop = asyncio.get_running_loop()
             await loop.run_in_executor(
                 None,
@@ -130,21 +150,21 @@ async def send_ntfy_notification(product_data, reason):
                     timeout=10
                 )
             )
-            print("   -> ntfy 通知发送成功。")
+            safe_print("   -> ntfy 通知发送成功。")
         except Exception as e:
-            print(f"   -> 发送 ntfy 通知失败: {e}")
+            safe_print(f"   -> 发送 ntfy 通知失败: {e}")
 
     # --- 发送 Gotify 通知 ---
     if GOTIFY_URL and GOTIFY_TOKEN:
         try:
-            print(f"   -> 正在发送 Gotify 通知到: {GOTIFY_URL}")
+            safe_print(f"   -> 正在发送 Gotify 通知到: {GOTIFY_URL}")
             # Gotify uses multipart/form-data
             payload = {
                 'title': (None, notification_title),
                 'message': (None, message),
                 'priority': (None, '5')
             }
-            
+
             gotify_url_with_token = f"{GOTIFY_URL}/message?token={GOTIFY_TOKEN}"
 
             loop = asyncio.get_running_loop()
@@ -157,24 +177,24 @@ async def send_ntfy_notification(product_data, reason):
                 )
             )
             response.raise_for_status()
-            print("   -> Gotify 通知发送成功。")
+            safe_print("   -> Gotify 通知发送成功。")
         except requests.exceptions.RequestException as e:
-            print(f"   -> 发送 Gotify 通知失败: {e}")
+            safe_print(f"   -> 发送 Gotify 通知失败: {e}")
         except Exception as e:
-            print(f"   -> 发送 Gotify 通知时发生未知错误: {e}")
+            safe_print(f"   -> 发送 Gotify 通知时发生未知错误: {e}")
 
     # --- 发送 Bark 通知 ---
     if BARK_URL:
         try:
-            print(f"   -> 正在发送 Bark 通知...")
-            
+            safe_print(f"   -> 正在发送 Bark 通知...")
+
             bark_payload = {
                 "title": notification_title,
                 "body": message,
                 "level": "timeSensitive",
                 "group": "闲鱼监控"
             }
-            
+
             link_to_use = convert_goofish_link(link) if PCURL_TO_MOBILE else link
             bark_payload["url"] = link_to_use
 
@@ -185,7 +205,7 @@ async def send_ntfy_notification(product_data, reason):
                 image_list = product_data.get('商品图片列表', [])
                 if image_list:
                     main_image = image_list[0]
-            
+
             if main_image:
                 bark_payload['icon'] = main_image
 
@@ -201,11 +221,11 @@ async def send_ntfy_notification(product_data, reason):
                 )
             )
             response.raise_for_status()
-            print("   -> Bark 通知发送成功。")
+            safe_print("   -> Bark 通知发送成功。")
         except requests.exceptions.RequestException as e:
-            print(f"   -> 发送 Bark 通知失败: {e}")
+            safe_print(f"   -> 发送 Bark 通知失败: {e}")
         except Exception as e:
-            print(f"   -> 发送 Bark 通知时发生未知错误: {e}")
+            safe_print(f"   -> 发送 Bark 通知时发生未知错误: {e}")
 
     # --- 发送企业微信机器人通知 ---
     if WX_BOT_URL:
@@ -217,7 +237,7 @@ async def send_ntfy_notification(product_data, reason):
         }
 
         try:
-            print(f"   -> 正在发送企业微信通知到: {WX_BOT_URL}")
+            safe_print(f"   -> 正在发送企业微信通知到: {WX_BOT_URL}")
             headers = { "Content-Type": "application/json" }
             loop = asyncio.get_running_loop()
             response = await loop.run_in_executor(
@@ -231,16 +251,16 @@ async def send_ntfy_notification(product_data, reason):
             )
             response.raise_for_status()
             result = response.json()
-            print(f"   -> 企业微信通知发送成功。响应: {result}")
+            safe_print(f"   -> 企业微信通知发送成功。响应: {result}")
         except requests.exceptions.RequestException as e:
-            print(f"   -> 发送企业微信通知失败: {e}")
+            safe_print(f"   -> 发送企业微信通知失败: {e}")
         except Exception as e:
-            print(f"   -> 发送企业微信通知时发生未知错误: {e}")
+            safe_print(f"   -> 发送企业微信通知时发生未知错误: {e}")
 
     # --- 发送通用 Webhook 通知 ---
     if WEBHOOK_URL:
         try:
-            print(f"   -> 正在发送通用 Webhook 通知到: {WEBHOOK_URL}")
+            safe_print(f"   -> 正在发送通用 Webhook 通知到: {WEBHOOK_URL}")
 
             # 替换占位符
             def replace_placeholders(template_str):
@@ -258,7 +278,7 @@ async def send_ntfy_notification(product_data, reason):
                 try:
                     headers = json.loads(WEBHOOK_HEADERS)
                 except json.JSONDecodeError:
-                    print(f"   -> [警告] Webhook 请求头格式错误，请检查 .env 中的 WEBHOOK_HEADERS。")
+                    safe_print(f"   -> [警告] Webhook 请求头格式错误，请检查 .env 中的 WEBHOOK_HEADERS。")
 
             loop = asyncio.get_running_loop()
 
@@ -277,7 +297,7 @@ async def send_ntfy_notification(product_data, reason):
                         url_parts[4] = urlencode(query)
                         final_url = urlunparse(url_parts)
                     except json.JSONDecodeError:
-                        print(f"   -> [警告] Webhook 查询参数格式错误，请检查 .env 中的 WEBHOOK_QUERY_PARAMETERS。")
+                        safe_print(f"   -> [警告] Webhook 查询参数格式错误，请检查 .env 中的 WEBHOOK_QUERY_PARAMETERS。")
 
                 response = await loop.run_in_executor(
                     None,
@@ -301,54 +321,54 @@ async def send_ntfy_notification(product_data, reason):
                             if 'Content-Type' not in headers and 'content-type' not in headers:
                                 headers['Content-Type'] = 'application/x-www-form-urlencoded'
                         else:
-                            print(f"   -> [警告] 不支持的 WEBHOOK_CONTENT_TYPE: {WEBHOOK_CONTENT_TYPE}。")
+                            safe_print(f"   -> [警告] 不支持的 WEBHOOK_CONTENT_TYPE: {WEBHOOK_CONTENT_TYPE}。")
                     except json.JSONDecodeError:
-                        print(f"   -> [警告] Webhook 请求体格式错误，请检查 .env 中的 WEBHOOK_BODY。")
+                        safe_print(f"   -> [警告] Webhook 请求体格式错误，请检查 .env 中的 WEBHOOK_BODY。")
 
                 response = await loop.run_in_executor(
                     None,
                     lambda: requests.post(WEBHOOK_URL, headers=headers, json=json_payload, data=data, timeout=15)
                 )
             else:
-                print(f"   -> [警告] 不支持的 WEBHOOK_METHOD: {WEBHOOK_METHOD}。")
+                safe_print(f"   -> [警告] 不支持的 WEBHOOK_METHOD: {WEBHOOK_METHOD}。")
                 return
 
             response.raise_for_status()
-            print(f"   -> Webhook 通知发送成功。状态码: {response.status_code}")
+            safe_print(f"   -> Webhook 通知发送成功。状态码: {response.status_code}")
 
         except requests.exceptions.RequestException as e:
-            print(f"   -> 发送 Webhook 通知失败: {e}")
+            safe_print(f"   -> 发送 Webhook 通知失败: {e}")
         except Exception as e:
-            print(f"   -> 发送 Webhook 通知时发生未知错误: {e}")
+            safe_print(f"   -> 发送 Webhook 通知时发生未知错误: {e}")
 
 
 @retry_on_failure(retries=5, delay=10)
 async def get_ai_analysis(product_data, image_paths=None, prompt_text=""):
     """将完整的商品JSON数据和所有图片发送给 AI 进行分析（异步）。"""
     if not client:
-        print("   [AI分析] 错误：AI客户端未初始化，跳过分析。")
+        safe_print("   [AI分析] 错误：AI客户端未初始化，跳过分析。")
         return None
 
     item_info = product_data.get('商品信息', {})
     product_id = item_info.get('商品ID', 'N/A')
 
-    print(f"\n   [AI分析] 开始分析商品 #{product_id} (含 {len(image_paths or [])} 张图片)...")
-    print(f"   [AI分析] 标题: {item_info.get('商品标题', '无')}")
+    safe_print(f"\n   [AI分析] 开始分析商品 #{product_id} (含 {len(image_paths or [])} 张图片)...")
+    safe_print(f"   [AI分析] 标题: {item_info.get('商品标题', '无')}")
 
     if not prompt_text:
-        print("   [AI分析] 错误：未提供AI分析所需的prompt文本。")
+        safe_print("   [AI分析] 错误：未提供AI分析所需的prompt文本。")
         return None
 
     product_details_json = json.dumps(product_data, ensure_ascii=False, indent=2)
     system_prompt = prompt_text
 
     if AI_DEBUG_MODE:
-        print("\n--- [AI DEBUG] ---")
-        print("--- PROMPT TEXT (first 500 chars) ---")
-        print(prompt_text[:500] + "...")
-        print("--- PRODUCT DATA (JSON) ---")
-        print(product_details_json)
-        print("-------------------\n")
+        safe_print("\n--- [AI DEBUG] ---")
+        safe_print("--- PROMPT TEXT (first 500 chars) ---")
+        safe_print(prompt_text[:500] + "...")
+        safe_print("--- PRODUCT DATA (JSON) ---")
+        safe_print(product_details_json)
+        safe_print("-------------------\n")
 
     combined_text_prompt = f"""{system_prompt}
 
@@ -377,10 +397,10 @@ async def get_ai_analysis(product_data, image_paths=None, prompt_text=""):
     ai_response_content = response.choices[0].message.content
 
     if AI_DEBUG_MODE:
-        print("\n--- [AI DEBUG] ---")
-        print("--- RAW AI RESPONSE ---")
-        print(ai_response_content)
-        print("---------------------\n")
+        safe_print("\n--- [AI DEBUG] ---")
+        safe_print("--- RAW AI RESPONSE ---")
+        safe_print(ai_response_content)
+        safe_print("---------------------\n")
 
     try:
         # --- 新增代码：从Markdown代码块中提取JSON ---
@@ -393,11 +413,11 @@ async def get_ai_analysis(product_data, image_paths=None, prompt_text=""):
             return json.loads(clean_json_str)
         else:
             # 如果找不到 "{" 或 "}"，说明响应格式异常，按原样尝试解析并准备捕获错误
-            print("---!!! AI RESPONSE WARNING: Could not find JSON object markers '{' and '}' in the response. !!!---")
+            safe_print("---!!! AI RESPONSE WARNING: Could not find JSON object markers '{' and '}' in the response. !!!---")
             return json.loads(ai_response_content) # 这行很可能会再次触发错误，但保留逻辑完整性
         # --- 修改结束 ---
-        
+
     except json.JSONDecodeError as e:
-        print("---!!! AI RESPONSE PARSING FAILED (JSONDecodeError) !!!---")
-        print(f"原始返回值 (Raw response from AI):\n---\n{ai_response_content}\n---")
+        safe_print("---!!! AI RESPONSE PARSING FAILED (JSONDecodeError) !!!---")
+        safe_print(f"原始返回值 (Raw response from AI):\n---\n{ai_response_content}\n---")
         raise e
