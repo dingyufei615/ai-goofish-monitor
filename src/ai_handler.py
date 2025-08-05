@@ -407,10 +407,11 @@ async def get_ai_analysis(product_data, image_paths=None, prompt_text=""):
 
     messages = [{"role": "user", "content": user_content_list}]
 
+    # 移除 response_format 参数以提高与不同API提供商的兼容性
+    # 某些提供商(如阿里云Dashscope)可能不支持此参数导致404错误
     response = await client.chat.completions.create(
         model=MODEL_NAME,
-        messages=messages,
-        response_format={"type": "json_object"}
+        messages=messages
     )
 
     ai_response_content = response.choices[0].message.content

@@ -67,7 +67,15 @@ async def generate_criteria(user_description: str, reference_file_path: str) -> 
         print("AI已成功生成内容。")
         return generated_text.strip()
     except Exception as e:
-        print(f"调用 OpenAI API 时出错: {e}")
+        # 增强错误日志，显示更多详细信息以便于调试
+        error_details = f"调用 OpenAI API 时出错: {type(e).__name__}: {e}"
+        if hasattr(e, 'response') and e.response is not None:
+            error_details += f"\nHTTP状态码: {e.response.status_code}"
+            try:
+                error_details += f"\n响应内容: {e.response.text}"
+            except:
+                error_details += "\n无法获取响应内容"
+        print(error_details)
         raise e
 
 
