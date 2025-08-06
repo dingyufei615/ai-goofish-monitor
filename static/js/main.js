@@ -8,71 +8,71 @@ document.addEventListener('DOMContentLoaded', function() {
         tasks: () => `
             <section id="tasks-section" class="content-section">
                 <div class="section-header">
-                    <h2>任务管理</h2>
-                    <button id="add-task-btn" class="control-button primary-btn">➕ 创建新任务</button>
+                    <h2>Task Management</h2>
+                    <button id="add-task-btn" class="control-button primary-btn">➕ Create New Task</button>
                 </div>
                 <div id="tasks-table-container">
-                    <p>正在加载任务列表...</p>
+                    <p>Loading task list...</p>
                 </div>
             </section>`,
         results: () => `
             <section id="results-section" class="content-section">
                 <div class="section-header">
-                    <h2>结果查看</h2>
+                    <h2>Result Viewer</h2>
                 </div>
                 <div class="results-filter-bar">
-                    <select id="result-file-selector"><option>加载中...</option></select>
+                    <select id="result-file-selector"><option>Loading...</option></select>
                     <label>
                         <input type="checkbox" id="recommended-only-checkbox">
-                        仅看AI推荐
+                        AI Recommended Only
                     </label>
                     <select id="sort-by-selector">
-                        <option value="crawl_time">按爬取时间</option>
-                        <option value="publish_time">按发布时间</option>
-                        <option value="price">按价格</option>
+                        <option value="crawl_time">By Crawl Time</option>
+                        <option value="publish_time">By Publish Time</option>
+                        <option value="price">By Price</option>
                     </select>
                     <select id="sort-order-selector">
-                        <option value="desc">降序</option>
-                        <option value="asc">升序</option>
+                        <option value="desc">Descending</option>
+                        <option value="asc">Ascending</option>
                     </select>
-                    <button id="refresh-results-btn" class="control-button">🔄 刷新</button>
+                    <button id="refresh-results-btn" class="control-button">🔄 Refresh</button>
                 </div>
                 <div id="results-grid-container">
-                    <p>请先选择一个结果文件。</p>
+                    <p>Please select a result file first.</p>
                 </div>
             </section>`,
         logs: () => `
             <section id="logs-section" class="content-section">
                 <div class="section-header">
-                    <h2>运行日志</h2>
+                    <h2>Run Logs</h2>
                     <div class="log-controls">
                         <label>
                             <input type="checkbox" id="auto-refresh-logs-checkbox">
-                            自动刷新
+                            Auto-refresh
                         </label>
-                        <button id="refresh-logs-btn" class="control-button">🔄 刷新</button>
-                        <button id="clear-logs-btn" class="control-button danger-btn">🗑️ 清空日志</button>
+                        <button id="refresh-logs-btn" class="control-button">🔄 Refresh</button>
+                        <button id="clear-logs-btn" class="control-button danger-btn">🗑️ Clear Logs</button>
                     </div>
                 </div>
-                <pre id="log-content-container">正在加载日志...</pre>
+                <pre id="log-content-container">Loading logs...</pre>
             </section>`,
         settings: () => `
             <section id="settings-section" class="content-section">
-                <h2>系统设置</h2>
+                <h2>System Settings</h2>
                 <div class="settings-card">
-                    <h3>系统状态检查</h3>
-                    <div id="system-status-container"><p>正在加载状态...</p></div>
+                    <h3>System Status Check</h3>
+                    <div id="system-status-container"><p>Loading status...</p></div>
                 </div>
                 <div class="settings-card">
-                    <h3>Prompt 管理</h3>
+                    <h3>Prompt Management</h3>
                     <div class="prompt-manager">
                         <div class="prompt-list-container">
-                            <label for="prompt-selector">选择要编辑的 Prompt:</label>
-                            <select id="prompt-selector"><option>加载中...</option></select>
+                            <label for="prompt-selector">Select a Prompt to Edit:</label>
+                            <select id="prompt-selector"><option>Loading...</option></select>
                         </div>
                         <div class="prompt-editor-container">
-                            <textarea id="prompt-editor" spellcheck="false" disabled placeholder="请先从上方选择一个 Prompt 文件进行编辑..."></textarea>
-                            <button id="save-prompt-btn" class="control-button primary-btn" disabled>保存更改</button>
+                            <textarea id="prompt-editor" spellcheck="false" disabled placeholder="Please select a Prompt file from above to begin editing..."></textarea>
+                            <button id="save-prompt-btn" class="control-button primary-btn" disabled>Save Changes</button>
                         </div>
                     </div>
                 </div>
@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function() {
     async function fetchPrompts() {
         try {
             const response = await fetch('/api/prompts');
-            if (!response.ok) throw new Error('无法获取Prompt列表');
+            if (!response.ok) throw new Error('Could not fetch prompt list');
             return await response.json();
         } catch (error) {
             console.error(error);
@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
     async function fetchPromptContent(filename) {
         try {
             const response = await fetch(`/api/prompts/${filename}`);
-            if (!response.ok) throw new Error(`无法获取Prompt文件 ${filename} 的内容`);
+            if (!response.ok) throw new Error(`Could not fetch content of prompt file ${filename}`);
             return await response.json();
         } catch (error) {
             console.error(error);
@@ -111,12 +111,12 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.detail || '更新Prompt失败');
+                throw new Error(errorData.detail || 'Failed to update prompt');
             }
             return await response.json();
         } catch (error) {
-            console.error(`无法更新Prompt ${filename}:`, error);
-            alert(`错误: ${error.message}`);
+            console.error(`Could not update prompt ${filename}:`, error);
+            alert(`Error: ${error.message}`);
             return null;
         }
     }
@@ -132,13 +132,13 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.detail || '通过AI创建任务失败');
+                throw new Error(errorData.detail || 'Failed to create task with AI');
             }
-            console.log(`AI任务创建成功!`);
+            console.log(`AI task created successfully!`);
             return await response.json();
         } catch (error) {
-            console.error(`无法通过AI创建任务:`, error);
-            alert(`错误: ${error.message}`);
+            console.error(`Could not create task with AI:`, error);
+            alert(`Error: ${error.message}`);
             return null;
         }
     }
@@ -150,13 +150,13 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.detail || '删除任务失败');
+                throw new Error(errorData.detail || 'Failed to delete task');
             }
-            console.log(`任务 ${taskId} 删除成功!`);
+            console.log(`Task ${taskId} deleted successfully!`);
             return await response.json();
         } catch (error) {
-            console.error(`无法删除任务 ${taskId}:`, error);
-            alert(`错误: ${error.message}`);
+            console.error(`Could not delete task ${taskId}:`, error);
+            alert(`Error: ${error.message}`);
             return null;
         }
     }
@@ -172,14 +172,14 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.detail || '更新任务失败');
+                throw new Error(errorData.detail || 'Failed to update task');
             }
-            console.log(`任务 ${taskId} 更新成功!`);
+            console.log(`Task ${taskId} updated successfully!`);
             return await response.json();
         } catch (error) {
-            console.error(`无法更新任务 ${taskId}:`, error);
+            console.error(`Could not update task ${taskId}:`, error);
             // TODO: Use a more elegant notification system
-            alert(`错误: ${error.message}`);
+            alert(`Error: ${error.message}`);
             return null;
         }
     }
@@ -192,7 +192,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             return await response.json();
         } catch (error) {
-            console.error("无法获取任务列表:", error);
+            console.error("Could not fetch task list:", error);
             return null;
         }
     }
@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', function() {
     async function fetchResultFiles() {
         try {
             const response = await fetch('/api/results/files');
-            if (!response.ok) throw new Error('无法获取结果文件列表');
+            if (!response.ok) throw new Error('Could not fetch result file list');
             return await response.json();
         } catch (error) {
             console.error(error);
@@ -218,7 +218,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 sort_order: sortOrder
             });
             const response = await fetch(`/api/results/${filename}?${params}`);
-            if (!response.ok) throw new Error(`无法获取文件 ${filename} 的内容`);
+            if (!response.ok) throw new Error(`Could not fetch content of file ${filename}`);
             return await response.json();
         } catch (error) {
             console.error(error);
@@ -234,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             return await response.json();
         } catch (error) {
-            console.error("无法获取系统状态:", error);
+            console.error("Could not fetch system status:", error);
             return null;
         }
     }
@@ -244,12 +244,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch('/api/logs', { method: 'DELETE' });
             if (!response.ok) {
                 const err = await response.json();
-                throw new Error(err.detail || '清空日志失败');
+                throw new Error(err.detail || 'Failed to clear logs');
             }
             return await response.json();
         } catch (error) {
-            console.error("无法清空日志:", error);
-            alert(`错误: ${error.message}`);
+            console.error("Could not clear logs:", error);
+            alert(`Error: ${error.message}`);
             return null;
         }
     }
@@ -262,29 +262,29 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             return await response.json();
         } catch (error) {
-            console.error("无法获取日志:", error);
-            return { new_content: `\n加载日志失败: ${error.message}`, new_pos: fromPos };
+            console.error("Could not fetch logs:", error);
+            return { new_content: `\nFailed to load logs: ${error.message}`, new_pos: fromPos };
         }
     }
 
     // --- Render Functions ---
     function renderSystemStatus(status) {
-        if (!status) return '<p>无法加载系统状态。</p>';
+        if (!status) return '<p>Could not load system status.</p>';
 
         const renderStatusTag = (isOk) => isOk 
-            ? `<span class="tag status-ok">正常</span>` 
-            : `<span class="tag status-error">异常</span>`;
+            ? `<span class="tag status-ok">OK</span>`
+            : `<span class="tag status-error">Error</span>`;
 
         const env = status.env_file || {};
 
         return `
             <ul class="status-list">
                 <li class="status-item">
-                    <span class="label">登录状态文件 (xianyu_state.json)</span>
+                    <span class="label">Login State File (xianyu_state.json)</span>
                     <span class="value">${renderStatusTag(status.login_state_file && status.login_state_file.exists)}</span>
                 </li>
                 <li class="status-item">
-                    <span class="label">环境变量文件 (.env)</span>
+                    <span class="label">Environment File (.env)</span>
                     <span class="value">${renderStatusTag(env.exists)}</span>
                 </li>
                 <li class="status-item">
@@ -309,43 +309,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function renderResultsGrid(data) {
         if (!data || !data.items || data.items.length === 0) {
-            return '<p>没有找到符合条件的商品记录。</p>';
+            return '<p>No item records found matching the criteria.</p>';
         }
 
         const cards = data.items.map(item => {
-            const info = item.商品信息 || {};
-            const seller = item.卖家信息 || {};
+            const info = item.item_info || {};
+            const seller = item.seller_info || {};
             const ai = item.ai_analysis || {};
 
             const isRecommended = ai.is_recommended === true;
             const recommendationClass = isRecommended ? 'recommended' : 'not-recommended';
-            const recommendationText = isRecommended ? '推荐' : (ai.is_recommended === false ? '不推荐' : '待定');
+            const recommendationText = isRecommended ? 'Recommended' : (ai.is_recommended === false ? 'Not Recommended' : 'Pending');
             
-            const imageUrl = (info.商品图片列表 && info.商品图片列表[0]) ? info.商品图片列表[0] : 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
-            const crawlTime = item.爬取时间 ? new Date(item.爬取时间).toLocaleString('sv-SE').slice(0, 16) : '未知';
-            const publishTime = info.发布时间 || '未知';
+            const imageUrl = (info.item_image_list && info.item_image_list[0]) ? info.item_image_list[0] : 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+            const crawlTime = item.crawl_time ? new Date(item.crawl_time).toLocaleString('sv-SE').slice(0, 16) : 'Unknown';
+            const publishTime = info.publish_time || 'Unknown';
 
             return `
             <div class="result-card" data-item='${JSON.stringify(item)}'>
                 <div class="card-image">
-                    <a href="${info.商品链接 || '#'}" target="_blank"><img src="${imageUrl}" alt="${info.商品标题 || '商品图片'}" loading="lazy"></a>
+                    <a href="${info.item_link || '#'}" target="_blank"><img src="${imageUrl}" alt="${info.item_title || 'Item Image'}" loading="lazy"></a>
                 </div>
                 <div class="card-content">
-                    <h3 class="card-title"><a href="${info.商品链接 || '#'}" target="_blank" title="${info.商品标题 || ''}">${info.商品标题 || '无标题'}</a></h3>
-                    <p class="card-price">${info.当前售价 || '价格未知'}</p>
+                    <h3 class="card-title"><a href="${info.item_link || '#'}" target="_blank" title="${info.item_title || ''}">${info.item_title || 'No Title'}</a></h3>
+                    <p class="card-price">${info.current_price || 'Price Unknown'}</p>
                     <div class="card-ai-summary ${recommendationClass}">
-                        <strong>AI建议: ${recommendationText}</strong>
-                        <p title="${ai.reason || ''}">原因: ${ai.reason || '无分析'}</p>
+                        <strong>AI Advice: ${recommendationText}</strong>
+                        <p title="${ai.reason || ''}">Reason: ${ai.reason || 'No analysis'}</p>
                     </div>
                     <div class="card-footer">
                         <div>
-                            <span class="seller-info" title="${info.卖家昵称 || seller.卖家昵称 || '未知'}">卖家: ${info.卖家昵称 || seller.卖家昵称 || '未知'}</span>
+                            <span class="seller-info" title="${info.seller_nickname || seller.seller_nickname || 'Unknown'}">Seller: ${info.seller_nickname || seller.seller_nickname || 'Unknown'}</span>
                             <div class="time-info">
-                                <p>发布于: ${publishTime}</p>
-                                <p>抓取于: ${crawlTime}</p>
+                                <p>Published: ${publishTime}</p>
+                                <p>Crawled: ${crawlTime}</p>
                             </div>
                         </div>
-                        <a href="${info.商品链接 || '#'}" target="_blank" class="action-btn">查看详情</a>
+                        <a href="${info.item_link || '#'}" target="_blank" class="action-btn">View Details</a>
                     </div>
                 </div>
             </div>
@@ -357,19 +357,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function renderTasksTable(tasks) {
         if (!tasks || tasks.length === 0) {
-            return '<p>没有找到任何任务。请点击右上角“创建新任务”来添加一个。</p>';
+            return '<p>No tasks found. Please click "Create New Task" in the top right to add one.</p>';
         }
 
         const tableHeader = `
             <thead>
                 <tr>
-                    <th>启用</th>
-                    <th>任务名称</th>
-                    <th>关键词</th>
-                    <th>价格范围</th>
-                    <th>筛选条件</th>
-                    <th>AI 标准</th>
-                    <th>操作</th>
+                    <th>Enabled</th>
+                    <th>Task Name</th>
+                    <th>Keyword</th>
+                    <th>Price Range</th>
+                    <th>Filters</th>
+                    <th>AI Criteria</th>
+                    <th>Actions</th>
                 </tr>
             </thead>`;
 
@@ -383,12 +383,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 </td>
                 <td>${task.task_name}</td>
                 <td><span class="tag">${task.keyword}</span></td>
-                <td>${task.min_price || '不限'} - ${task.max_price || '不限'}</td>
-                <td>${task.personal_only ? '<span class="tag personal">个人闲置</span>' : ''}</td>
+                <td>${task.min_price || 'Any'} - ${task.max_price || 'Any'}</td>
+                <td>${task.personal_only ? '<span class="tag personal">Personal Only</span>' : ''}</td>
                 <td>${(task.ai_prompt_criteria_file || 'N/A').replace('prompts/', '')}</td>
                 <td>
-                    <button class="action-btn edit-btn">编辑</button>
-                    <button class="action-btn delete-btn">删除</button>
+                    <button class="action-btn edit-btn">Edit</button>
+                    <button class="action-btn delete-btn">Delete</button>
                 </td>
             </tr>`).join('');
 
@@ -433,7 +433,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
         } else {
-            mainContent.innerHTML = '<section class="content-section active"><h2>页面未找到</h2></section>';
+            mainContent.innerHTML = '<section class="content-section active"><h2>Page Not Found</h2></section>';
         }
     }
 
@@ -450,17 +450,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (isFullRefresh) {
                 currentLogSize = 0;
-                logContainer.textContent = '正在加载...';
+                logContainer.textContent = 'Loading...';
             }
             
             const logData = await fetchLogs(currentLogSize);
 
             if (isFullRefresh) {
                 // If the log is empty, show a message instead of a blank screen.
-                logContainer.textContent = logData.new_content || '日志为空，等待内容...';
+                logContainer.textContent = logData.new_content || 'Logs are empty, waiting for content...';
             } else if (logData.new_content) {
                 // If it was showing the empty message, replace it.
-                if (logContainer.textContent === '日志为空，等待内容...') {
+                if (logContainer.textContent === 'Logs are empty, waiting for content...') {
                     logContainer.textContent = logData.new_content;
                 } else {
                     logContainer.textContent += logData.new_content;
@@ -477,11 +477,11 @@ document.addEventListener('DOMContentLoaded', function() {
         refreshBtn.addEventListener('click', () => updateLogs(true));
 
         clearBtn.addEventListener('click', async () => {
-            if (confirm('你确定要清空所有运行日志吗？此操作不可恢复。')) {
+            if (confirm('Are you sure you want to clear all run logs? This action cannot be undone.')) {
                 const result = await clearLogs();
                 if (result) {
                     await updateLogs(true);
-                    alert('日志已清空。');
+                    alert('Logs have been cleared.');
                 }
             }
         });
@@ -516,13 +516,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const sortOrder = sortOrderSelector.value;
 
         if (!selectedFile) {
-            container.innerHTML = '<p>请先选择一个结果文件。</p>';
+            container.innerHTML = '<p>Please select a result file first.</p>';
             return;
         }
 
         localStorage.setItem('lastSelectedResultFile', selectedFile);
 
-        container.innerHTML = '<p>正在加载结果...</p>';
+        container.innerHTML = '<p>Loading results...</p>';
         const data = await fetchResultContent(selectedFile, recommendedOnly, sortBy, sortOrder);
         container.innerHTML = renderResultsGrid(data);
     }
@@ -558,8 +558,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Initial load
             await fetchAndRenderResults();
         } else {
-            selector.innerHTML = '<option value="">没有可用的结果文件</option>';
-            document.getElementById('results-grid-container').innerHTML = '<p>没有找到任何结果文件。请先运行监控任务。</p>';
+            selector.innerHTML = '<option value="">No result files available</option>';
+            document.getElementById('results-grid-container').innerHTML = '<p>No result files found. Please run a monitoring task first.</p>';
         }
     }
 
@@ -576,15 +576,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const prompts = await fetchPrompts();
         if (prompts && prompts.length > 0) {
-            promptSelector.innerHTML = '<option value="">-- 请选择 --</option>' + prompts.map(p => `<option value="${p}">${p}</option>`).join('');
+            promptSelector.innerHTML = '<option value="">-- Please Select --</option>' + prompts.map(p => `<option value="${p}">${p}</option>`).join('');
         } else {
-            promptSelector.innerHTML = '<option value="">没有找到Prompt文件</option>';
+            promptSelector.innerHTML = '<option value="">No Prompt files found</option>';
         }
 
         promptSelector.addEventListener('change', async () => {
             const selectedFile = promptSelector.value;
             if (selectedFile) {
-                promptEditor.value = "正在加载...";
+                promptEditor.value = "Loading...";
                 promptEditor.disabled = true;
                 savePromptBtn.disabled = true;
                 const data = await fetchPromptContent(selectedFile);
@@ -593,10 +593,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     promptEditor.disabled = false;
                     savePromptBtn.disabled = false;
                 } else {
-                    promptEditor.value = `加载文件 ${selectedFile} 失败。`;
+                    promptEditor.value = `Failed to load file ${selectedFile}.`;
                 }
             } else {
-                promptEditor.value = "请先从上方选择一个 Prompt 文件进行编辑...";
+                promptEditor.value = "Please select a Prompt file from above to begin editing...";
                 promptEditor.disabled = true;
                 savePromptBtn.disabled = true;
             }
@@ -606,21 +606,21 @@ document.addEventListener('DOMContentLoaded', function() {
             const selectedFile = promptSelector.value;
             const content = promptEditor.value;
             if (!selectedFile) {
-                alert("请先选择一个要保存的Prompt文件。");
+                alert("Please select a Prompt file to save first.");
                 return;
             }
 
             savePromptBtn.disabled = true;
-            savePromptBtn.textContent = '保存中...';
+            savePromptBtn.textContent = 'Saving...';
 
             const result = await updatePrompt(selectedFile, content);
             if (result) {
-                alert(result.message || "保存成功！");
+                alert(result.message || "Saved successfully!");
             }
             // No need to show alert on failure, as updatePrompt already does.
             
             savePromptBtn.disabled = false;
-            savePromptBtn.textContent = '保存更改';
+            savePromptBtn.textContent = 'Save Changes';
         });
     }
 
@@ -672,24 +672,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td><input type="text" value="${taskData.task_name}" data-field="task_name"></td>
                 <td><input type="text" value="${taskData.keyword}" data-field="keyword"></td>
                 <td>
-                    <input type="text" value="${taskData.min_price || ''}" placeholder="不限" data-field="min_price" style="width: 60px;"> -
-                    <input type="text" value="${taskData.max_price || ''}" placeholder="不限" data-field="max_price" style="width: 60px;">
+                    <input type="text" value="${taskData.min_price || ''}" placeholder="Any" data-field="min_price" style="width: 60px;"> -
+                    <input type="text" value="${taskData.max_price || ''}" placeholder="Any" data-field="max_price" style="width: 60px;">
                 </td>
                 <td>
                     <label>
-                        <input type="checkbox" ${taskData.personal_only ? 'checked' : ''} data-field="personal_only"> 个人闲置
+                        <input type="checkbox" ${taskData.personal_only ? 'checked' : ''} data-field="personal_only"> Personal Only
                     </label>
                 </td>
                 <td>${(taskData.ai_prompt_criteria_file || 'N/A').replace('prompts/', '')}</td>
                 <td>
-                    <button class="action-btn save-btn">保存</button>
-                    <button class="action-btn cancel-btn">取消</button>
+                    <button class="action-btn save-btn">Save</button>
+                    <button class="action-btn cancel-btn">Cancel</button>
                 </td>
             `;
 
         } else if (button.matches('.delete-btn')) {
             const taskName = row.querySelector('td:nth-child(2)').textContent;
-            if (confirm(`你确定要删除任务 "${taskName}" 吗?`)) {
+            if (confirm(`Are you sure you want to delete the task "${taskName}"?`)) {
                 const result = await deleteTask(taskId);
                 if (result) {
                     row.remove();
@@ -704,7 +704,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const taskNameInput = row.querySelector('input[data-field="task_name"]');
             const keywordInput = row.querySelector('input[data-field="keyword"]');
             if (!taskNameInput.value.trim() || !keywordInput.value.trim()) {
-                alert('任务名称和关键词不能为空。');
+                alert('Task Name and Keyword cannot be empty.');
                 return;
             }
 
@@ -824,18 +824,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Reset buttons state
         startBtn.disabled = false;
-        startBtn.innerHTML = `🚀 全部启动`;
+        startBtn.innerHTML = `🚀 Start All`;
         stopBtn.disabled = false;
-        stopBtn.innerHTML = `🛑 全部停止`;
+        stopBtn.innerHTML = `🛑 Stop All`;
 
         if (status && status.scraper_running) {
             statusIndicator.className = 'status-running';
-            statusText.textContent = '运行中';
+            statusText.textContent = 'Running';
             startBtn.style.display = 'none';
             stopBtn.style.display = 'inline-block';
         } else {
             statusIndicator.className = 'status-stopped';
-            statusText.textContent = '已停止';
+            statusText.textContent = 'Stopped';
             startBtn.style.display = 'inline-block';
             stopBtn.style.display = 'none';
         }
@@ -849,19 +849,19 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('start-all-tasks').addEventListener('click', async () => {
         const btn = document.getElementById('start-all-tasks');
         btn.disabled = true;
-        btn.innerHTML = `<span class="spinner" style="vertical-align: middle;"></span> 启动中...`;
+        btn.innerHTML = `<span class="spinner" style="vertical-align: middle;"></span> Starting...`;
 
         try {
             const response = await fetch('/api/tasks/start-all', { method: 'POST' });
             if (!response.ok) {
                 const err = await response.json();
-                throw new Error(err.detail || '启动失败');
+                throw new Error(err.detail || 'Failed to start');
             }
             await response.json();
             // Give backend a moment to update state before refreshing
             setTimeout(refreshSystemStatus, 1000);
         } catch (error) {
-            alert(`启动任务失败: ${error.message}`);
+            alert(`Failed to start tasks: ${error.message}`);
             await refreshSystemStatus(); // Refresh status to reset button state
         }
     });
@@ -869,18 +869,18 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('stop-all-tasks').addEventListener('click', async () => {
         const btn = document.getElementById('stop-all-tasks');
         btn.disabled = true;
-        btn.innerHTML = `<span class="spinner" style="vertical-align: middle;"></span> 停止中...`;
+        btn.innerHTML = `<span class="spinner" style="vertical-align: middle;"></span> Stopping...`;
 
         try {
             const response = await fetch('/api/tasks/stop-all', { method: 'POST' });
             if (!response.ok) {
                 const err = await response.json();
-                throw new Error(err.detail || '停止失败');
+                throw new Error(err.detail || 'Failed to stop');
             }
             await response.json();
             setTimeout(refreshSystemStatus, 1000);
         } catch (error) {
-            alert(`停止任务失败: ${error.message}`);
+            alert(`Failed to stop tasks: ${error.message}`);
             await refreshSystemStatus(); // Refresh status to reset button state
         }
     });

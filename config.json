@@ -22,14 +22,14 @@
     "max_price": "4500"
   },
   {
-    "task_name": "婴儿车",
+    "task_name": "Baby Stroller",
     "enabled": false,
-    "keyword": "babycare 婴儿车",
+    "keyword": "babycare stroller",
     "max_pages": 3,
     "personal_only": true,
     "min_price": "500",
     "max_price": "1000",
     "ai_prompt_base_file": "prompts/base_prompt.txt",
-    "ai_prompt_criteria_file": "prompts/babycare_婴儿车_criteria.txt"
+    "ai_prompt_criteria_file": "prompts/babycare_stroller_criteria.txt"
   }
 ]

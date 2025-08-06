@@ -53,7 +53,7 @@ class PromptUpdate(BaseModel):
     content: str
 
 
-app = FastAPI(title="闲鱼智能监控机器人")
+app = FastAPI(title="Xianyu Intelligent Monitoring Bot")
 
 # --- Globals for process management ---
 scraper_process = None
@@ -67,7 +67,7 @@ templates = Jinja2Templates(directory="templates")
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
     """
-    提供 Web UI 的主页面。
+    Serves the main page of the Web UI.
     """
     return templates.TemplateResponse("index.html", {"request": request})
 
@@ -78,61 +78,61 @@ CONFIG_FILE = "config.json"
 @app.get("/api/tasks")
 async def get_tasks():
     """
-    读取并返回 config.json 中的所有任务。
+    Reads and returns all tasks from config.json.
     """
     try:
         async with aiofiles.open(CONFIG_FILE, 'r', encoding='utf-8') as f:
             content = await f.read()
             tasks = json.loads(content)
-            # 为每个任务添加一个唯一的 id
+            # Add a unique id to each task
             for i, task in enumerate(tasks):
                 task['id'] = i
             return tasks
     except FileNotFoundError:
-        raise HTTPException(status_code=404, detail=f"配置文件 {CONFIG_FILE} 未找到。")
+        raise HTTPException(status_code=404, detail=f"Configuration file {CONFIG_FILE} not found.")
     except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail=f"配置文件 {CONFIG_FILE} 格式错误。")
+        raise HTTPException(status_code=500, detail=f"Configuration file {CONFIG_FILE} is malformed.")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"读取任务配置时发生错误: {e}")
+        raise HTTPException(status_code=500, detail=f"An error occurred while reading the task configuration: {e}")
 
 
 @app.post("/api/tasks/generate", response_model=dict)
 async def generate_task(req: TaskGenerateRequest):
     """
-    使用 AI 生成一个新的分析标准文件，并据此创建一个新任务。
+    Generates a new analysis criteria file using AI and creates a new task based on it.
     """
-    print(f"收到 AI 任务生成请求: {req.task_name}")
+    print(f"Received AI task generation request: {req.task_name}")
     
-    # 1. 为新标准文件生成一个唯一的文件名
+    # 1. Generate a unique filename for the new criteria file
     safe_keyword = "".join(c for c in req.keyword.lower().replace(' ', '_') if c.isalnum() or c in "_-").rstrip()
     output_filename = f"prompts/{safe_keyword}_criteria.txt"
     
-    # 2. 调用 AI 生成分析标准
+    # 2. Call AI to generate analysis criteria
     try:
         generated_criteria = await generate_criteria(
             user_description=req.description,
-            reference_file_path="prompts/macbook_criteria.txt" # 使用默认的macbook标准作为参考
+            reference_file_path="prompts/macbook_criteria.txt" # Use the default macbook criteria as a reference
         )
         if not generated_criteria:
-            raise HTTPException(status_code=500, detail="AI未能生成分析标准。")
+            raise HTTPException(status_code=500, detail="AI failed to generate analysis criteria.")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"调用AI生成标准时出错: {e}")
+        raise HTTPException(status_code=500, detail=f"An error occurred while calling the AI for criteria generation: {e}")
 
-    # 3. 将生成的文本保存到新文件
+    # 3. Save the generated text to a new file
     try:
         os.makedirs("prompts", exist_ok=True)
         async with aiofiles.open(output_filename, 'w', encoding='utf-8') as f:
             await f.write(generated_criteria)
-        print(f"新的分析标准已保存到: {output_filename}")
+        print(f"New analysis criteria saved to: {output_filename}")
     except IOError as e:
-        raise HTTPException(status_code=500, detail=f"保存分析标准文件失败: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to save the analysis criteria file: {e}")
 
-    # 4. 创建新任务对象
+    # 4. Create the new task object
     new_task = {
         "task_name": req.task_name,
         "enabled": True,
         "keyword": req.keyword,
-        "max_pages": 3, # 默认值
+        "max_pages": 3, # Default value
         "personal_only": req.personal_only,
         "min_price": req.min_price,
         "max_price": req.max_price,
@@ -140,27 +140,27 @@ async def generate_task(req: TaskGenerateRequest):
         "ai_prompt_criteria_file": output_filename
     }
 
-    # 5. 将新任务添加到 config.json
+    # 5. Add the new task to config.json
     success = await update_config_with_new_task(new_task, CONFIG_FILE)
     if not success:
-        # 如果更新失败，最好能把刚刚创建的文件删掉，以保持一致性
+        # If the update fails, it's best to delete the file just created to maintain consistency
         if os.path.exists(output_filename):
             os.remove(output_filename)
-        raise HTTPException(status_code=500, detail="更新配置文件 config.json 失败。")
+        raise HTTPException(status_code=500, detail="Failed to update configuration file config.json.")
 
-    # 6. 返回成功创建的任务（包含ID）
+    # 6. Return the successfully created task (including ID)
     async with aiofiles.open(CONFIG_FILE, 'r', encoding='utf-8') as f:
         tasks = json.loads(await f.read())
     new_task_with_id = new_task.copy()
     new_task_with_id['id'] = len(tasks) - 1
 
-    return {"message": "AI 任务创建成功。", "task": new_task_with_id}
+    return {"message": "AI task created successfully.", "task": new_task_with_id}
 
 
 @app.post("/api/tasks", response_model=dict)
 async def create_task(task: Task):
     """
-    创建一个新任务并将其添加到 config.json。
+    Creates a new task and adds it to config.json.
     """
     try:
         async with aiofiles.open(CONFIG_FILE, 'r', encoding='utf-8') as f:
@@ -176,26 +176,26 @@ async def create_task(task: Task):
             await f.write(json.dumps(tasks, ensure_ascii=False, indent=2))
         
         new_task_data['id'] = len(tasks) - 1
-        return {"message": "任务创建成功。", "task": new_task_data}
+        return {"message": "Task created successfully.", "task": new_task_data}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"写入配置文件时发生错误: {e}")
+        raise HTTPException(status_code=500, detail=f"An error occurred while writing to the configuration file: {e}")
 
 
 @app.patch("/api/tasks/{task_id}", response_model=dict)
 async def update_task(task_id: int, task_update: TaskUpdate):
     """
-    更新指定ID任务的属性。
+    Updates the properties of a task with the specified ID.
     """
     try:
         async with aiofiles.open(CONFIG_FILE, 'r', encoding='utf-8') as f:
             tasks = json.loads(await f.read())
     except (FileNotFoundError, json.JSONDecodeError) as e:
-        raise HTTPException(status_code=500, detail=f"读取或解析配置文件失败: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to read or parse the configuration file: {e}")
 
     if not (0 <= task_id < len(tasks)):
-        raise HTTPException(status_code=404, detail="任务未找到。")
+        raise HTTPException(status_code=404, detail="Task not found.")
 
-    # 更新数据
+    # Update data
     task_changed = False
     update_data = task_update.dict(exclude_unset=True)
     
@@ -206,41 +206,41 @@ async def update_task(task_id: int, task_update: TaskUpdate):
             task_changed = True
 
     if not task_changed:
-        return JSONResponse(content={"message": "数据无变化，未执行更新。"}, status_code=200)
+        return JSONResponse(content={"message": "No changes in data, update not performed."}, status_code=200)
 
-    # 异步写回文件
+    # Write back to the file asynchronously
     try:
         async with aiofiles.open(CONFIG_FILE, 'w', encoding='utf-8') as f:
             await f.write(json.dumps(tasks, ensure_ascii=False, indent=2))
         
         updated_task = tasks[task_id]
         updated_task['id'] = task_id
-        return {"message": "任务更新成功。", "task": updated_task}
+        return {"message": "Task updated successfully.", "task": updated_task}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"写入配置文件时发生错误: {e}")
+        raise HTTPException(status_code=500, detail=f"An error occurred while writing to the configuration file: {e}")
 
 
 @app.post("/api/tasks/start-all", response_model=dict)
 async def start_all_tasks():
     """
-    启动所有在 config.json 中启用的任务。
+    Starts all enabled tasks in config.json.
     """
     global scraper_process
     if scraper_process and scraper_process.returncode is None:
-        raise HTTPException(status_code=400, detail="监控任务已在运行中。")
+        raise HTTPException(status_code=400, detail="Monitoring task is already running.")
 
     try:
-        # 设置日志目录和文件
+        # Set up log directory and file
         os.makedirs("logs", exist_ok=True)
         log_file_path = os.path.join("logs", "scraper.log")
         
-        # 以追加模式打开日志文件，如果不存在则创建。
-        # 子进程将继承这个文件句柄。
+        # Open the log file in append mode, creating it if it doesn't exist.
+        # The child process will inherit this file handle.
         log_file_handle = open(log_file_path, 'a', encoding='utf-8')
 
-        # 使用与Web服务器相同的Python解释器来运行爬虫脚本
-        # 增加 -u 参数来禁用I/O缓冲，确保日志实时写入文件
-        # 在非 Windows 系统上，使用 setsid 创建新进程组，以便能终止整个进程树
+        # Use the same Python interpreter as the web server to run the scraper script
+        # Add the -u flag to disable I/O buffering, ensuring logs are written in real-time
+        # On non-Windows systems, use setsid to create a new process group to be able to terminate the whole process tree
         preexec_fn = os.setsid if sys.platform != "win32" else None
         scraper_process = await asyncio.create_subprocess_exec(
             sys.executable, "-u", "spider_v2.py",
@@ -248,138 +248,138 @@ async def start_all_tasks():
             stderr=log_file_handle,
             preexec_fn=preexec_fn
         )
-        print(f"启动爬虫进程，PID: {scraper_process.pid}，日志输出到 {log_file_path}")
-        return {"message": "所有启用任务已启动。"}
+        print(f"Started scraper process with PID: {scraper_process.pid}, logging to {log_file_path}")
+        return {"message": "All enabled tasks have been started."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"启动爬虫进程时出错: {e}")
+        raise HTTPException(status_code=500, detail=f"An error occurred while starting the scraper process: {e}")
 
 
 @app.post("/api/tasks/stop-all", response_model=dict)
 async def stop_all_tasks():
     """
-    停止当前正在运行的监控任务。
+    Stops the currently running monitoring task.
     """
     global scraper_process
     if not scraper_process or scraper_process.returncode is not None:
-        raise HTTPException(status_code=400, detail="没有正在运行的监控任务。")
+        raise HTTPException(status_code=400, detail="No monitoring task is currently running.")
 
     try:
         if sys.platform != "win32":
-            # 在非 Windows 系统上，终止整个进程组
+            # On non-Windows systems, terminate the entire process group
             os.killpg(os.getpgid(scraper_process.pid), signal.SIGTERM)
         else:
-            # 在 Windows 上，只能终止主进程
+            # On Windows, can only terminate the main process
             scraper_process.terminate()
 
         await scraper_process.wait()
-        print(f"爬虫进程 {scraper_process.pid} 已终止。")
+        print(f"Scraper process {scraper_process.pid} has been terminated.")
         scraper_process = None
-        return {"message": "所有任务已停止。"}
+        return {"message": "All tasks have been stopped."}
     except ProcessLookupError:
-        # 进程可能已经不存在
-        print(f"试图终止的爬虫进程已不存在。")
+        # The process might already be gone
+        print(f"The scraper process to be terminated no longer exists.")
         scraper_process = None
-        return {"message": "任务已经停止。"}
+        return {"message": "Tasks have already been stopped."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"停止爬虫进程时出错: {e}")
+        raise HTTPException(status_code=500, detail=f"An error occurred while stopping the scraper process: {e}")
 
 
 @app.get("/api/logs")
 async def get_logs(from_pos: int = 0):
     """
-    获取爬虫日志文件的内容。支持从指定位置增量读取。
+    Gets the content of the scraper log file. Supports incremental reading from a specified position.
     """
     log_file_path = os.path.join("logs", "scraper.log")
     if not os.path.exists(log_file_path):
-        return JSONResponse(content={"new_content": "日志文件不存在或尚未创建。", "new_pos": 0})
+        return JSONResponse(content={"new_content": "Log file does not exist or has not been created yet.", "new_pos": 0})
 
     try:
-        # 使用二进制模式打开以精确获取文件大小和位置
+        # Open in binary mode to get file size and position accurately
         async with aiofiles.open(log_file_path, 'rb') as f:
             await f.seek(0, os.SEEK_END)
             file_size = await f.tell()
 
-            # 如果客户端的位置已经是最新的，直接返回
+            # If the client's position is already up-to-date, return immediately
             if from_pos >= file_size:
                 return {"new_content": "", "new_pos": file_size}
 
             await f.seek(from_pos)
             new_bytes = await f.read()
         
-        # 解码获取的字节
+        # Decode the fetched bytes
         try:
             new_content = new_bytes.decode('utf-8')
         except UnicodeDecodeError:
-            # 如果 utf-8 失败，尝试用 gbk 读取，并忽略无法解码的字符
+            # If utf-8 fails, try reading with gbk and ignore undecodable characters
             new_content = new_bytes.decode('gbk', errors='ignore')
 
         return {"new_content": new_content, "new_pos": file_size}
 
     except Exception as e:
-        # 返回错误信息，同时保持位置不变，以便下次重试
+        # Return an error message while keeping the position unchanged for the next retry
         return JSONResponse(
             status_code=500,
-            content={"new_content": f"\n读取日志文件时出错: {e}", "new_pos": from_pos}
+            content={"new_content": f"\nAn error occurred while reading the log file: {e}", "new_pos": from_pos}
         )
 
 
 @app.delete("/api/logs", response_model=dict)
 async def clear_logs():
     """
-    清空日志文件内容。
+    Clears the content of the log file.
     """
     log_file_path = os.path.join("logs", "scraper.log")
     if not os.path.exists(log_file_path):
-        return {"message": "日志文件不存在，无需清空。"}
+        return {"message": "Log file does not exist, no need to clear."}
 
     try:
-        # 使用 'w' 模式打开文件会清空内容
+        # Opening the file in 'w' mode will clear its content
         async with aiofiles.open(log_file_path, 'w') as f:
             await f.write("")
-        return {"message": "日志已成功清空。"}
+        return {"message": "Logs have been successfully cleared."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"清空日志文件时出错: {e}")
+        raise HTTPException(status_code=500, detail=f"An error occurred while clearing the log file: {e}")
 
 
 @app.delete("/api/tasks/{task_id}", response_model=dict)
 async def delete_task(task_id: int):
     """
-    从 config.json 中删除指定ID的任务。
+    Deletes a task with the specified ID from config.json.
     """
     try:
         async with aiofiles.open(CONFIG_FILE, 'r', encoding='utf-8') as f:
             tasks = json.loads(await f.read())
     except (FileNotFoundError, json.JSONDecodeError) as e:
-        raise HTTPException(status_code=500, detail=f"读取或解析配置文件失败: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to read or parse the configuration file: {e}")
 
     if not (0 <= task_id < len(tasks)):
-        raise HTTPException(status_code=404, detail="任务未找到。")
+        raise HTTPException(status_code=404, detail="Task not found.")
 
     deleted_task = tasks.pop(task_id)
 
-    # 尝试删除关联的 criteria 文件
+    # Try to delete the associated criteria file
     criteria_file = deleted_task.get("ai_prompt_criteria_file")
     if criteria_file and os.path.exists(criteria_file):
         try:
             os.remove(criteria_file)
-            print(f"成功删除关联的分析标准文件: {criteria_file}")
+            print(f"Successfully deleted associated analysis criteria file: {criteria_file}")
         except OSError as e:
-            # 如果文件删除失败，只记录日志，不中断主流程
-            print(f"警告: 删除文件 {criteria_file} 失败: {e}")
+            # If file deletion fails, just log it and don't interrupt the main flow
+            print(f"Warning: Failed to delete file {criteria_file}: {e}")
 
     try:
         async with aiofiles.open(CONFIG_FILE, 'w', encoding='utf-8') as f:
             await f.write(json.dumps(tasks, ensure_ascii=False, indent=2))
         
-        return {"message": "任务删除成功。", "task_name": deleted_task.get("task_name")}
+        return {"message": "Task deleted successfully.", "task_name": deleted_task.get("task_name")}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"写入配置文件时发生错误: {e}")
+        raise HTTPException(status_code=500, detail=f"An error occurred while writing to the configuration file: {e}")
 
 
 @app.get("/api/results/files")
 async def list_result_files():
     """
-    列出所有生成的 .jsonl 结果文件。
+    Lists all generated .jsonl result files.
     """
     jsonl_dir = "jsonl"
     if not os.path.isdir(jsonl_dir):
@@ -391,14 +391,14 @@ async def list_result_files():
 @app.get("/api/results/{filename}")
 async def get_result_file_content(filename: str, page: int = 1, limit: int = 20, recommended_only: bool = False, sort_by: str = "crawl_time", sort_order: str = "desc"):
     """
-    读取指定的 .jsonl 文件内容，支持分页、筛选和排序。
+    Reads the content of the specified .jsonl file, with support for pagination, filtering, and sorting.
     """
     if not filename.endswith(".jsonl") or "/" in filename or ".." in filename:
-        raise HTTPException(status_code=400, detail="无效的文件名。")
+        raise HTTPException(status_code=400, detail="Invalid filename.")
     
     filepath = os.path.join("jsonl", filename)
     if not os.path.exists(filepath):
-        raise HTTPException(status_code=404, detail="结果文件未找到。")
+        raise HTTPException(status_code=404, detail="Result file not found.")
 
     results = []
     try:
@@ -414,22 +414,22 @@ async def get_result_file_content(filename: str, page: int = 1, limit: int = 20,
                 except json.JSONDecodeError:
                     continue
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"读取结果文件时出错: {e}")
+        raise HTTPException(status_code=500, detail=f"An error occurred while reading the result file: {e}")
 
     # --- Sorting logic ---
     def get_sort_key(item):
-        info = item.get("商品信息", {})
+        info = item.get("item_info", {})
         if sort_by == "publish_time":
-            # Handles "未知时间" by placing it at the end/start depending on order
-            return info.get("发布时间", "0000-00-00 00:00")
+            # Handles "Unknown Time" by placing it at the end/start depending on order
+            return info.get("publish_time", "0000-00-00 00:00")
         elif sort_by == "price":
-            price_str = str(info.get("当前售价", "0")).replace("¥", "").replace(",", "").strip()
+            price_str = str(info.get("current_price", "0")).replace("¥", "").replace(",", "").strip()
             try:
                 return float(price_str)
             except (ValueError, TypeError):
                 return 0.0 # Default for unparsable prices
         else: # default to crawl_time
-            return item.get("爬取时间", "")
+            return item.get("crawl_time", "")
 
     is_reverse = (sort_order == "desc")
     results.sort(key=get_sort_key, reverse=is_reverse)
@@ -450,19 +450,19 @@ async def get_result_file_content(filename: str, page: int = 1, limit: int = 20,
 @app.get("/api/settings/status")
 async def get_system_status():
     """
-    检查系统关键文件和配置的状态。
+    Checks the status of key system files and configurations.
     """
     global scraper_process
     env_config = dotenv_values(".env")
 
-    # 检查进程是否仍在运行
+    # Check if the process is still running
     is_running = False
     if scraper_process:
         if scraper_process.returncode is None:
             is_running = True
         else:
-            # 进程已结束，重置
-            print(f"检测到爬虫进程 {scraper_process.pid} 已结束，返回码: {scraper_process.returncode}。")
+            # Process has finished, reset
+            print(f"Detected that scraper process {scraper_process.pid} has finished with return code: {scraper_process.returncode}.")
             scraper_process = None
     
     status = {
@@ -487,7 +487,7 @@ PROMPTS_DIR = "prompts"
 @app.get("/api/prompts")
 async def list_prompts():
     """
-    列出 prompts/ 目录下的所有 .txt 文件。
+    Lists all .txt files in the prompts/ directory.
     """
     if not os.path.isdir(PROMPTS_DIR):
         return []
@@ -497,14 +497,14 @@ async def list_prompts():
 @app.get("/api/prompts/{filename}")
 async def get_prompt_content(filename: str):
     """
-    获取指定 prompt 文件的内容。
+    Gets the content of a specified prompt file.
     """
     if "/" in filename or ".." in filename:
-        raise HTTPException(status_code=400, detail="无效的文件名。")
+        raise HTTPException(status_code=400, detail="Invalid filename.")
     
     filepath = os.path.join(PROMPTS_DIR, filename)
     if not os.path.exists(filepath):
-        raise HTTPException(status_code=404, detail="Prompt 文件未找到。")
+        raise HTTPException(status_code=404, detail="Prompt file not found.")
     
     async with aiofiles.open(filepath, 'r', encoding='utf-8') as f:
         content = await f.read()
@@ -514,31 +514,31 @@ async def get_prompt_content(filename: str):
 @app.put("/api/prompts/{filename}")
 async def update_prompt_content(filename: str, prompt_update: PromptUpdate):
     """
-    更新指定 prompt 文件的内容。
+    Updates the content of a specified prompt file.
     """
     if "/" in filename or ".." in filename:
-        raise HTTPException(status_code=400, detail="无效的文件名。")
+        raise HTTPException(status_code=400, detail="Invalid filename.")
 
     filepath = os.path.join(PROMPTS_DIR, filename)
     if not os.path.exists(filepath):
-        raise HTTPException(status_code=404, detail="Prompt 文件未找到。")
+        raise HTTPException(status_code=404, detail="Prompt file not found.")
 
     try:
         async with aiofiles.open(filepath, 'w', encoding='utf-8') as f:
             await f.write(prompt_update.content)
-        return {"message": f"Prompt 文件 '{filename}' 更新成功。"}
+        return {"message": f"Prompt file '{filename}' updated successfully."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"写入 Prompt 文件时出错: {e}")
+        raise HTTPException(status_code=500, detail=f"An error occurred while writing to the Prompt file: {e}")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """
-    应用退出时，确保终止所有子进程。
+    Ensures all child processes are terminated when the application exits.
     """
     global scraper_process
     if scraper_process and scraper_process.returncode is None:
-        print(f"Web服务器正在关闭，正在终止爬虫进程 {scraper_process.pid}...")
+        print(f"Web server is shutting down, terminating scraper process {scraper_process.pid}...")
         try:
             if sys.platform != "win32":
                 os.killpg(os.getpgid(scraper_process.pid), signal.SIGTERM)
@@ -546,35 +546,34 @@ async def shutdown_event():
                 scraper_process.terminate()
 
             await asyncio.wait_for(scraper_process.wait(), timeout=5.0)
-            print("爬虫进程已成功终止。")
+            print("Scraper process terminated successfully.")
         except ProcessLookupError:
-            print("试图终止的爬虫进程已不存在。")
+            print("The scraper process to be terminated no longer exists.")
         except asyncio.TimeoutError:
-            print("等待爬虫进程终止超时，将强制终止。")
+            print("Timed out waiting for scraper process to terminate, forcing termination.")
             try:
                 if sys.platform != "win32":
                     os.killpg(os.getpgid(scraper_process.pid), signal.SIGKILL)
                 else:
                     scraper_process.kill()
             except ProcessLookupError:
-                print("试图强制终止的爬虫进程已不存在。")
+                print("The scraper process to be force-terminated no longer exists.")
         finally:
             scraper_process = None
 
 
 if __name__ == "__main__":
-    # 从 .env 文件加载环境变量
+    # Load environment variables from .env file
     config = dotenv_values(".env")
     
-    # 获取服务器端口，如果未设置则默认为 8000
+    # Get the server port, defaulting to 8000 if not set
     server_port = int(config.get("SERVER_PORT", 8000))
 
-    # 设置默认编码
+    # Set default encoding
     env = os.environ.copy()
     env["PYTHONIOENCODING"] = "utf-8"
     
-    print(f"启动 Web 管理界面，请在浏览器访问 http://127.0.0.1:{server_port}")
+    print(f"Starting Web Management UI, please visit http://127.0.0.1:{server_port} in your browser")
 
-    # 启动 Uvicorn 服务器
+    # Start the Uvicorn server
     uvicorn.run(app, host="0.0.0.0", port=server_port)
-

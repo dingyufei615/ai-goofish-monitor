@@ -1,46 +1,46 @@
-### **第一部分：核心分析原则 (不可违背)**
+### **Part One: Core Analysis Principles (Not to be violated)**
 
-1.  **画像优先原则 (PERSONA-FIRST PRINCIPLE) [V6.3 核心升级]**: 这是解决“航拍玩家”与“专业贩子”识别混淆的最高指导原则。在评估卖家时，你的首要任务不是寻找孤立的疑点，而是**构建一个连贯的卖家“行为画像”**。你必须回答核心问题：“这个卖家的所有行为（买、卖、评价、签名）组合起来，讲述的是一个怎样的故事？”
-    *   **如果故事是连贯的个人行为**（例如，一个热爱航拍，不断体验、升级、出掉旧设备的发烧友），那么一些表面上的“疑点”（如交易频率略高）可以被合理解释，**不应**作为否决依据。
-    *   **如果故事是矛盾的、不连贯的，或者明确指向商业行为**（例如，购买记录是配件和炸机，售卖记录却是大量“几乎全新”的同型号无人机），那么即便卖家伪装得很好，也必须判定为商家。
+1.  **PERSONA-FIRST PRINCIPLE [V6.3 Core Upgrade]**: This is the supreme guiding principle for resolving the confusion between identifying "aerial photography players" and "professional resellers." When evaluating a seller, your primary task is not to look for isolated suspicious points, but to **construct a coherent "behavioral persona" of the seller**. You must answer the core question: "What kind of story do all of this seller's actions (buying, selling, reviews, signature) tell when combined?"
+    *   **If the story is a coherent personal behavior** (e.g., an enthusiast who loves aerial photography, constantly experiencing, upgrading, and selling old equipment), then some superficial "suspicious points" (like slightly high transaction frequency) can be reasonably explained and **should not** be used as a basis for rejection.
+    *   **If the story is contradictory, incoherent, or clearly points to commercial activity** (e.g., purchase history consists of accessories and crashed drones, while sales records show a large number of "almost new" drones of the same model), then even if the seller is well-disguised, they must be identified as a merchant.
 
-2.  **一票否决硬性原则 (HARD DEAL-BREAKER RULES)**: 以下是必须严格遵守的否决条件。任何一项不满足，`is_recommended` 必须立即判定为 `false`。
-    *   **型号/套装**: 必须是 **大疆 Mini 3 Pro** 且明确为 **畅飞套装**（或在描述/图片中清晰展示多块电池和充电管家）。
-    *   **卖家信用**: `卖家信用等级` 必须是 **'卖家信用极好'**。
-    *   **邮寄方式**: 必须 **支持邮寄**。
-    *   **电池循环硬性门槛**: 若明确提供了电池循环次数，其数值 **`必须 ≤ 50 次`**。
-    *   **【V6.4 逻辑修正】机器历史**: **不得出现**任何“炸机”、“维修过”、“更换过机臂/云台”、“有暗病”等明确表示有严重事故或拆修历史的描述。
+2.  **HARD DEAL-BREAKER RULES**: The following are rejection conditions that must be strictly adhered to. If any one of these is not met, `is_recommended` must immediately be set to `false`.
+    *   **Model/Package**: Must be **DJI Mini 3 Pro** and explicitly a **Fly More Combo** (or clearly show multiple batteries and a charging hub in the description/images).
+    *   **Seller Credit**: `Seller Credit Level` must be **'Excellent'**.
+    *   **Shipping Method**: Must **support shipping**.
+    *   **Battery Cycle Hard Threshold**: If battery cycle counts are explicitly provided, their value **`must be ≤ 50`**.
+    *   **[V6.4 Logic Correction] Machine History**: There must be **no mention** of any "crashed," "repaired," "arm/gimbal replaced," "hidden issues," or other descriptions that clearly indicate a history of serious accidents or disassembly.
 
-3.  **图片至上原则 (IMAGE-FIRST PRINCIPLE)**: 如果图片信息（如截图）与文本描述冲突，**必须以图片信息为最终裁决依据**。
+3.  **IMAGE-FIRST PRINCIPLE**: If information from images (e.g., screenshots) conflicts with the text description, **the image information must be used as the final basis for judgment**.
 
-4.  **【V6.4 逻辑修正】信息缺失处理原则 (MISSING-INFO HANDLING)**: 对于可后天询问的关键信息（特指**电池循环次数**和**维修/炸机历史**），若完全未找到，状态应为 `NEEDS_MANUAL_CHECK`，这**不直接导致否决**。如果卖家画像极为优秀，可以进行“有条件推荐”。
+4.  **[V6.4 Logic Correction] MISSING-INFO HANDLING**: For key information that can be asked about later (specifically **battery cycle count** and **repair/crash history**), if it is completely missing, the status should be `NEEDS_MANUAL_CHECK`, which **does not directly lead to rejection**. If the seller's persona is excellent, a "conditional recommendation" can be made.
 
 ---
 
-### **第二部分：详细分析指南**
+### **Part Two: Detailed Analysis Guide**
 
-**A. 商品本身评估 (Criteria Analysis):**
+**A. Product Itself Assessment (Criteria Analysis):**
 
-1.  **型号套装 (`model_package`)**: 核对所有文本和图片。非 Mini 3 Pro 或非畅飞套装（或等效配件）则 `FAIL`。
-2.  **电池循环 (`battery_cycles`)**: 单块电池循环次数 ≤ 50 次。若无信息，则为 `NEEDS_MANUAL_CHECK`。
-3.  **成色外观 (`condition`)**: 最多接受“轻微使用痕迹”。仔细审查图片机身、机臂、桨叶、云台。
-4.  **【V6.4 逻辑修正】机器历史 (`history`)**: 严格审查所有文本和图片，寻找“炸机”、“维修”、“换过”、“进水”、“云台不正常”等负面描述。**若完全未提及，则状态为 `NEEDS_MANUAL_CHECK`**；若有任何炸机或拆修证据，则为 `FAIL`。
+1.  **Model & Package (`model_package`)**: Verify all text and images. If not a Mini 3 Pro or not a Fly More Combo (or equivalent accessories), then `FAIL`.
+2.  **Battery Cycles (`battery_cycles`)**: Cycle count for a single battery ≤ 50. If no information, then `NEEDS_MANUAL_CHECK`.
+3.  **Condition & Appearance (`condition`)**: At most, "light signs of use" are acceptable. Carefully inspect the drone body, arms, propellers, and gimbal in the pictures.
+4.  **[V6.4 Logic Correction] Machine History (`history`)**: Strictly review all text and images for negative descriptions like "crashed," "repaired," "replaced," "water damaged," "gimbal not normal." **If not mentioned at all, the status is `NEEDS_MANUAL_CHECK`**; if there is any evidence of a crash or disassembly, it is a `FAIL`.
 
-**B. 卖家与市场评估 (核心)**
+**B. Seller and Market Assessment (Core)**
 
-5.  **卖家背景深度分析 (`seller_type`) - [决定性评估]**:
-    *   **核心目标**: 运用“画像优先原则”，判定卖家是【个人玩家】还是【商家/贩子】。
-    *   **【V6.3 升级】危险信号清单 (Red Flag List) 及豁免条款**:
-        *   **交易频率**: 短期内有密集交易。
-            *   **【发烧友豁免条款】**: 如果交易记录时间跨度长（如超过2年），且买卖行为能形成“体验-升级-出售”的逻辑闭环（如玩过FPV、御等其他机型），则此条不适用。一个长期航拍发烧友在几年内有数十次交易是正常的。
-        *   **商品垂直度**: 发布的商品高度集中于某一特定型号或品类。
-            *   **【发烧友豁免条款】**: 如果卖家是该领域的深度玩家（例如，从他的购买记录、评价和发言能看出），专注于无人机是其专业性的体现。关键看他是在“玩”还是在“出货”。
-        *   **“行话”**: 描述中出现“回收、同行、工作室、置换、量大”等术语。
-            *   **【无豁免】**: 此为强烈的商家信号。
-        *   **物料购买**: 购买记录中出现批量电池、桨叶、维修工具、炸机等。
-            *   **【无豁免】**: 此为决定性的商家证据。
-        *   **图片/标题风格**: 图片背景高度统一、专业；或标题模板化。
-            *   **【发烧友豁免条款】**: 如果卖家追求完美，有自己的固定拍摄角落来展示他心爱的无人机，这是加分项。关键看图片传递的是“爱惜感”还是“商品感”。
+5.  **In-depth Seller Background Analysis (`seller_type`) - [Decisive Evaluation]**:
+    *   **Core Objective**: Use the "Persona-First Principle" to determine if the seller is a [Personal Player] or a [Merchant/Reseller].
+    *   **[V6.3 Upgrade] Red Flag List & Exemption Clauses**:
+        *   **Transaction Frequency**: Dense transactions in a short period.
+            *   **[Enthusiast Exemption Clause]**: If the transaction records span a long period (e.g., over 2 years) and the buying/selling behavior forms a logical loop of "experience-upgrade-sell" (e.g., has played with FPV, Mavic, or other models), this clause does not apply. It is normal for a long-term aerial photography enthusiast to have dozens of transactions over several years.
+        *   **Product Verticality**: The listed items are highly concentrated in a specific model or category.
+            *   **[Enthusiast Exemption Clause]**: If the seller is a deep player in the field (as can be seen from their purchase history, reviews, and comments), focusing on drones is a reflection of their expertise. The key is to see if they are "playing" or "shipping goods."
+        *   **"Jargon"**: Descriptions include terms like "recycle," "peers," "workshop," "trade-in," "bulk."
+            *   **[No Exemption]**: This is a strong signal of a merchant.
+        *   **Material Purchases**: Purchase history includes bulk batteries, propellers, repair tools, crashed drones, etc.
+            *   **[No Exemption]**: This is decisive evidence of a merchant.
+        *   **Image/Title Style**: Highly uniform, professional backgrounds in images; or templated titles.
+            *   **[Enthusiast Exemption Clause]**: If the seller pursues perfection and has a fixed shooting corner to display their beloved drone, this is a plus. The key is whether the pictures convey a sense of "cherishing" or "merchandise."
 
-6.  **邮寄方式 (`shipping`)**: 明确“仅限xx地面交/自提”则 `FAIL`。
-7.  **卖家信用 (`seller_credit`)**: `卖家信用等级` 必须为 **'卖家信用极好'**。
+6.  **Shipping Method (`shipping`)**: Explicitly stating "local pickup only" is a `FAIL`.
+7.  **Seller Credit (`seller_credit`)**: `Seller Credit Level` must be **'Excellent'**.

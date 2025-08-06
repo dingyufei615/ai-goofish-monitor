@@ -16,67 +16,67 @@ PROXY_URL = os.getenv("PROXY_URL")
 
 # Check configuration
 if not all([BASE_URL, MODEL_NAME]):
-    raise ValueError("错误：请确保在 .env 文件中完整设置了 OPENAI_BASE_URL 和 OPENAI_MODEL_NAME。(OPENAI_API_KEY 对于某些服务是可选的)")
+    raise ValueError("Error: Please ensure that OPENAI_BASE_URL and OPENAI_MODEL_NAME are fully set in the .env file. (OPENAI_API_KEY is optional for some services)")
 
 # Initialize OpenAI client
 try:
     if PROXY_URL:
-        print(f"正在为AI请求使用HTTP/S代理: {PROXY_URL}")
-        # httpx 会自动从环境变量中读取代理设置
+        print(f"Using HTTP/S proxy for AI requests: {PROXY_URL}")
+        # httpx automatically reads proxy settings from environment variables
         os.environ['HTTP_PROXY'] = PROXY_URL
         os.environ['HTTPS_PROXY'] = PROXY_URL
 
-    # openai 客户端内部的 httpx 会自动从环境变量中获取代理配置
+    # The httpx client inside the openai client will automatically pick up proxy settings from environment variables
     client = AsyncOpenAI(api_key=API_KEY, base_url=BASE_URL)
 except Exception as e:
-    raise RuntimeError(f"初始化 OpenAI 客户端时出错: {e}") from e
+    raise RuntimeError(f"Error initializing OpenAI client: {e}") from e
 
 # The meta-prompt to instruct the AI
 META_PROMPT_TEMPLATE = """
-你是一位世界级的AI提示词工程大师。你的任务是根据用户提供的【购买需求】，模仿一个【参考范例】，为闲鱼监控机器人的AI分析模块（代号 EagleEye）生成一份全新的【分析标准】文本。
+You are a world-class AI prompt engineering master. Your task is to generate a brand new "Analysis Criteria" text for the Xianyu monitoring bot's AI analysis module (codenamed EagleEye), based on the user-provided [Purchase Demand] and imitating a [Reference Example].
 
-你的输出必须严格遵循【参考范例】的结构、语气和核心原则，但内容要完全针对用户的【购买需求】进行定制。最终生成的文本将作为AI分析模块的思考指南。
+Your output must strictly follow the structure, tone, and core principles of the [Reference Example], but the content must be completely customized for the user's [Purchase Demand]. The final generated text will serve as the thinking guide for the AI analysis module.
 
 ---
-这是【参考范例】（`macbook_criteria.txt`）：
+This is the [Reference Example] (`macbook_criteria.txt`):
 ```text
 {reference_text}
 ```
 ---
 
-这是用户的【购买需求】：
+This is the user's [Purchase Demand]:
 ```text
 {user_description}
 ```
 ---
 
-请现在开始生成全新的【分析标准】文本。请注意：
-1.  **只输出新生成的文本内容**，不要包含任何额外的解释、标题或代码块标记。
-2.  保留范例中的 `[V6.3 核心升级]`、`[V6.4 逻辑修正]` 等版本标记，这有助于保持格式一致性。
-3.  将范例中所有与 "MacBook" 相关的内容，替换为与用户需求商品相关的内容。
-4.  思考并生成针对新商品类型的“一票否决硬性原则”和“危险信号清单”。
+Please start generating the new "Analysis Criteria" text now. Note:
+1.  **Only output the newly generated text content**, without any additional explanations, titles, or code block markers.
+2.  Retain version markers from the example, such as `[V6.3 Core Upgrade]` and `[V6.4 Logic Correction]`, to maintain format consistency.
+3.  Replace all content related to "MacBook" in the example with content related to the user's desired product.
+4.  Think about and generate "hard deal-breaker rules" and a "red flag list" for the new product type.
 """
 
 async def generate_criteria(user_description: str, reference_file_path: str) -> str:
     """
     Generates a new criteria file content using AI.
     """
-    print(f"正在读取参考文件: {reference_file_path}")
+    print(f"Reading reference file: {reference_file_path}")
     try:
         with open(reference_file_path, 'r', encoding='utf-8') as f:
             reference_text = f.read()
     except FileNotFoundError:
-        raise FileNotFoundError(f"参考文件未找到: {reference_file_path}")
+        raise FileNotFoundError(f"Reference file not found: {reference_file_path}")
     except IOError as e:
-        raise IOError(f"读取参考文件失败: {e}")
+        raise IOError(f"Failed to read reference file: {e}")
 
-    print("正在构建发送给AI的指令...")
+    print("Constructing the prompt to send to the AI...")
     prompt = META_PROMPT_TEMPLATE.format(
         reference_text=reference_text,
         user_description=user_description
     )
 
-    print("正在调用AI生成新的分析标准，请稍候...")
+    print("Calling AI to generate new analysis criteria, please wait...")
     try:
         response = await client.chat.completions.create(
             model=MODEL_NAME,
@@ -84,52 +84,52 @@ async def generate_criteria(user_description: str, reference_file_path: str) -> 
             temperature=0.5, # Lower temperature for more predictable structure
         )
         generated_text = response.choices[0].message.content
-        print("AI已成功生成内容。")
+        print("AI has successfully generated the content.")
         return generated_text.strip()
     except Exception as e:
-        print(f"调用 OpenAI API 时出错: {e}")
+        print(f"An error occurred while calling the OpenAI API: {e}")
         raise e
 
 
 async def update_config_with_new_task(new_task: dict, config_file: str = "config.json"):
     """
-    将一个新任务添加到指定的JSON配置文件中。
+    Adds a new task to the specified JSON configuration file.
     """
-    print(f"正在更新配置文件: {config_file}")
+    print(f"Updating configuration file: {config_file}")
     try:
-        # 读取现有配置
+        # Read existing configuration
         config_data = []
         if os.path.exists(config_file):
             async with aiofiles.open(config_file, 'r', encoding='utf-8') as f:
                 content = await f.read()
-                # 处理空文件的情况
+                # Handle the case of an empty file
                 if content.strip():
                     config_data = json.loads(content)
 
-        # 追加新任务
+        # Append the new task
         config_data.append(new_task)
 
-        # 写回配置文件
+        # Write the configuration back to the file
         async with aiofiles.open(config_file, 'w', encoding='utf-8') as f:
             await f.write(json.dumps(config_data, ensure_ascii=False, indent=2))
         
-        print(f"成功！新任务 '{new_task.get('task_name')}' 已添加到 {config_file} 并已启用。")
+        print(f"Success! New task '{new_task.get('task_name')}' has been added to {config_file} and enabled.")
         return True
     except json.JSONDecodeError:
-        sys.stderr.write(f"错误: 配置文件 {config_file} 格式错误，无法解析。\n")
+        sys.stderr.write(f"Error: Configuration file {config_file} is malformed and cannot be parsed.\n")
         return False
     except IOError as e:
-        sys.stderr.write(f"错误: 读写配置文件失败: {e}\n")
+        sys.stderr.write(f"Error: Failed to read or write configuration file: {e}\n")
         return False
 
 
 async def main():
     parser = argparse.ArgumentParser(
-        description="使用AI根据用户需求和参考范例，生成闲鱼监控机器人的分析标准文件，并自动更新config.json。",
+        description="Uses AI to generate an analysis criteria file for the Xianyu monitoring bot based on user needs and a reference example, and automatically updates config.json.",
         epilog="""
-使用示例:
+Example usage:
   python prompt_generator.py \\
-    --description "我想买一台95新以上的索尼A7M4相机，预算在10000到13000元之间..." \\
+    --description "I want to buy a Sony A7M4 camera, 95% new or better, with a budget between 10,000 and 13,000 yuan..." \\
     --output prompts/sony_a7m4_criteria.txt \\
     --task-name "Sony A7M4" \\
     --keyword "a7m4" \\
@@ -138,18 +138,18 @@ async def main():
 """,
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("--description", type=str, required=True, help="你详细的购买需求描述。")
-    parser.add_argument("--output", type=str, required=True, help="新生成的分析标准文件的保存路径。")
-    parser.add_argument("--reference", type=str, default="prompts/macbook_criteria.txt", help="作为模仿范例的参考文件路径。")
+    parser.add_argument("--description", type=str, required=True, help="Your detailed purchase requirement description.")
+    parser.add_argument("--output", type=str, required=True, help="The save path for the newly generated analysis criteria file.")
+    parser.add_argument("--reference", type=str, default="prompts/macbook_criteria.txt", help="The path to the reference file to be used as a template.")
     # New arguments for config.json
-    parser.add_argument("--task-name", type=str, required=True, help="新任务的名称 (例如: 'Sony A7M4')。")
-    parser.add_argument("--keyword", type=str, required=True, help="新任务的搜索关键词 (例如: 'a7m4')。")
-    parser.add_argument("--min-price", type=str, help="最低价格。")
-    parser.add_argument("--max-price", type=str, help="最高价格。")
-    parser.add_argument("--max-pages", type=int, default=3, help="最大搜索页数 (默认: 3)。")
-    parser.add_argument('--no-personal-only', dest='personal_only', action='store_false', help="如果设置，则不筛选个人卖家。")
+    parser.add_argument("--task-name", type=str, required=True, help="The name of the new task (e.g., 'Sony A7M4').")
+    parser.add_argument("--keyword", type=str, required=True, help="The search keyword for the new task (e.g., 'a7m4').")
+    parser.add_argument("--min-price", type=str, help="The minimum price.")
+    parser.add_argument("--max-price", type=str, help="The maximum price.")
+    parser.add_argument("--max-pages", type=int, default=3, help="The maximum number of search pages (default: 3).")
+    parser.add_argument('--no-personal-only', dest='personal_only', action='store_false', help="If set, does not filter for personal sellers.")
     parser.set_defaults(personal_only=True)
-    parser.add_argument("--config-file", type=str, default="config.json", help="任务配置文件的路径 (默认: config.json)。")
+    parser.add_argument("--config-file", type=str, default="config.json", help="The path to the task configuration file (default: config.json).")
     args = parser.parse_args()
 
     # Ensure the output directory exists
@@ -163,11 +163,11 @@ async def main():
         try:
             with open(args.output, 'w', encoding='utf-8') as f:
                 f.write(generated_criteria)
-            print(f"\n成功！新的分析标准已保存到: {args.output}")
+            print(f"\nSuccess! The new analysis criteria have been saved to: {args.output}")
         except IOError as e:
-            sys.exit(f"错误: 写入输出文件失败: {e}")
+            sys.exit(f"Error: Failed to write to the output file: {e}")
 
-        # 创建新任务条目
+        # Create the new task entry
         new_task = {
             "task_name": args.task_name,
             "enabled": True,
@@ -182,10 +182,10 @@ async def main():
         if args.max_price:
             new_task["max_price"] = args.max_price
 
-        # 使用重构的函数更新 config.json
+        # Update config.json using the refactored function
         success = await update_config_with_new_task(new_task, args.config_file)
         if success:
-            print("现在，你可以直接运行 `python spider_v2.py` 来启动包括新任务在内的所有监控。")
+            print("You can now run `python spider_v2.py` directly to start all monitors, including the new task.")
 
 if __name__ == "__main__":
     asyncio.run(main())

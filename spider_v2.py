@@ -18,11 +18,11 @@ from openai import AsyncOpenAI, APIStatusError
 from playwright.async_api import async_playwright, Response, TimeoutError as PlaywrightTimeoutError
 from requests.exceptions import HTTPError
 
-# 定义登录状态文件的路径
+# Define the file path for the login state
 STATE_FILE = "xianyu_state.json"
-# 定义闲鱼搜索API的URL特征
+# Define the URL pattern for the Xianyu search API
 API_URL_PATTERN = "h5api.m.goofish.com/h5/mtop.taobao.idlemtopsearch.pc.search"
-# 定义闲鱼详情页API的URL特征
+# Define the URL pattern for the Xianyu detail page API
 DETAIL_API_URL_PATTERN = "h5api.m.goofish.com/h5/mtop.taobao.idle.pc.detail"
 
 # --- AI & Notification Configuration ---
@@ -39,47 +39,47 @@ LOGIN_IS_EDGE = os.getenv("LOGIN_IS_EDGE", "false").lower() == "true"
 RUNNING_IN_DOCKER = os.getenv("RUNNING_IN_DOCKER", "false").lower() == "true"
 AI_DEBUG_MODE = os.getenv("AI_DEBUG_MODE", "false").lower() == "true"
 
-# 检查配置是否齐全
+# Check if the configuration is complete
 if not all([BASE_URL, MODEL_NAME]):
-    sys.exit("错误：请确保在 .env 文件中完整设置了 OPENAI_BASE_URL 和 OPENAI_MODEL_NAME。(OPENAI_API_KEY 对于某些服务是可选的)")
+    sys.exit("Error: Please ensure that OPENAI_BASE_URL and OPENAI_MODEL_NAME are fully set in the .env file. (OPENAI_API_KEY is optional for some services)")
 
-# 初始化 OpenAI 客户端
+# Initialize OpenAI client
 try:
     if PROXY_URL:
-        print(f"正在为AI请求使用HTTP/S代理: {PROXY_URL}")
-        # httpx 会自动从环境变量中读取代理设置
+        print(f"Using HTTP/S proxy for AI requests: {PROXY_URL}")
+        # httpx automatically reads proxy settings from environment variables
         os.environ['HTTP_PROXY'] = PROXY_URL
         os.environ['HTTPS_PROXY'] = PROXY_URL
 
-    # openai 客户端内部的 httpx 会自动从环境变量中获取代理配置
+    # The httpx client inside the openai client will automatically pick up proxy settings from environment variables
     client = AsyncOpenAI(api_key=API_KEY, base_url=BASE_URL)
 except Exception as e:
-    sys.exit(f"初始化 OpenAI 客户端时出错: {e}")
+    sys.exit(f"Error initializing OpenAI client: {e}")
 
-# 定义目录和文件名
+# Define directories and filenames
 IMAGE_SAVE_DIR = "images"
 os.makedirs(IMAGE_SAVE_DIR, exist_ok=True)
 
-# 定义下载图片所需的请求头
+# Define request headers for downloading images
 IMAGE_DOWNLOAD_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:139.0) Gecko/20100101 Firefox/139.0',
     'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
     'Connection': 'keep-alive',
     'Upgrade-Insecure-Requests': '1',
 }
 
 def convert_goofish_link(url: str) -> str:
     """
-    将Goofish商品链接转换为只包含商品ID的手机端格式。
+    Converts a Goofish product link to a mobile-friendly format containing only the product ID.
 
     Args:
-        url: 原始的Goofish商品链接。
+        url: The original Goofish product link.
 
     Returns:
-        转换后的简洁链接，或在无法解析时返回原始链接。
+        The converted concise link, or the original link if it cannot be parsed.
     """
-    # 匹配第一个链接中的商品ID模式：item?id= 后面的数字串
+    # Match the product ID pattern in the first link: the number string after item?id=
     match_first_link = re.search(r'item\?id=(\d+)', url)
     if match_first_link:
         item_id = match_first_link.group(1)
@@ -89,17 +89,17 @@ def convert_goofish_link(url: str) -> str:
     return url
 
 def get_link_unique_key(link: str) -> str:
-    """截取链接中第一个"&"之前的内容作为唯一标识依据。"""
+    """Extracts the content before the first "&" in the link as a unique identifier."""
     return link.split('&', 1)[0]
 
 async def random_sleep(min_seconds: float, max_seconds: float):
-    """异步等待一个在指定范围内的随机时间。"""
+    """Asynchronously waits for a random duration within a specified range."""
     delay = random.uniform(min_seconds, max_seconds)
-    print(f"   [延迟] 等待 {delay:.2f} 秒... (范围: {min_seconds}-{max_seconds}s)") # 调试时可以取消注释
+    print(f"   [Delay] Waiting for {delay:.2f} seconds... (Range: {min_seconds}-{max_seconds}s)") # Can be uncommented for debugging
     await asyncio.sleep(delay)
 
 async def save_to_jsonl(data_record: dict, keyword: str):
-    """将一个包含商品和卖家信息的完整记录追加保存到 .jsonl 文件。"""
+    """Appends a complete record containing product and seller information to a .jsonl file."""
     output_dir = "jsonl"
     os.makedirs(output_dir, exist_ok=True)
     filename = os.path.join(output_dir, f"{keyword.replace(' ', '_')}_full_data.jsonl")
@@ -108,105 +108,105 @@ async def save_to_jsonl(data_record: dict, keyword: str):
             f.write(json.dumps(data_record, ensure_ascii=False) + "\n")
         return True
     except IOError as e:
-        print(f"写入文件 {filename} 出错: {e}")
+        print(f"Error writing to file {filename}: {e}")
         return False
 
 async def calculate_reputation_from_ratings(ratings_json: list) -> dict:
-    """从原始评价API数据列表中，计算作为卖家和买家的好评数与好评率。"""
+    """Calculates the number and rate of positive reviews as a seller and a buyer from the raw rating API data list."""
     seller_total = 0
     seller_positive = 0
     buyer_total = 0
     buyer_positive = 0
 
     for card in ratings_json:
-        # 使用 safe_get 保证安全访问
+        # Use safe_get to ensure safe access
         data = await safe_get(card, 'cardData', default={})
         role_tag = await safe_get(data, 'rateTagList', 0, 'text', default='')
-        rate_type = await safe_get(data, 'rate') # 1=好评, 0=中评, -1=差评
+        rate_type = await safe_get(data, 'rate') # 1=Positive, 0=Neutral, -1=Negative
 
-        if "卖家" in role_tag:
+        if "卖家" in role_tag or "Seller" in role_tag:
             seller_total += 1
             if rate_type == 1:
                 seller_positive += 1
-        elif "买家" in role_tag:
+        elif "买家" in role_tag or "Buyer" in role_tag:
             buyer_total += 1
             if rate_type == 1:
                 buyer_positive += 1
 
-    # 计算比率，并处理除以零的情况
+    # Calculate ratios, handling division by zero
     seller_rate = f"{(seller_positive / seller_total * 100):.2f}%" if seller_total > 0 else "N/A"
     buyer_rate = f"{(buyer_positive / buyer_total * 100):.2f}%" if buyer_total > 0 else "N/A"
 
     return {
-        "作为卖家的好评数": f"{seller_positive}/{seller_total}",
-        "作为卖家的好评率": seller_rate,
-        "作为买家的好评数": f"{buyer_positive}/{buyer_total}",
-        "作为买家的好评率": buyer_rate
+        "positive_reviews_as_seller": f"{seller_positive}/{seller_total}",
+        "positive_rate_as_seller": seller_rate,
+        "positive_reviews_as_buyer": f"{buyer_positive}/{buyer_total}",
+        "positive_rate_as_buyer": buyer_rate
     }
 
 async def _parse_user_items_data(items_json: list) -> list:
-    """解析用户主页的商品列表API的JSON数据。"""
+    """Parses the JSON data of the item list API on the user's homepage."""
     parsed_list = []
     for card in items_json:
         data = card.get('cardData', {})
         status_code = data.get('itemStatus')
         if status_code == 0:
-            status_text = "在售"
+            status_text = "For Sale"
         elif status_code == 1:
-            status_text = "已售"
+            status_text = "Sold"
         else:
-            status_text = f"未知状态 ({status_code})"
+            status_text = f"Unknown Status ({status_code})"
 
         parsed_list.append({
-            "商品ID": data.get('id'),
-            "商品标题": data.get('title'),
-            "商品价格": data.get('priceInfo', {}).get('price'),
-            "商品主图": data.get('picInfo', {}).get('picUrl'),
-            "商品状态": status_text
+            "item_id": data.get('id'),
+            "item_title": data.get('title'),
+            "item_price": data.get('priceInfo', {}).get('price'),
+            "item_main_image": data.get('picInfo', {}).get('picUrl'),
+            "item_status": status_text
         })
     return parsed_list
 
 
 async def scrape_user_profile(context, user_id: str) -> dict:
     """
-    【新版】访问指定用户的个人主页，按顺序采集其摘要信息、完整的商品列表和完整的评价列表。
+    [New Version] Visits a specified user's personal homepage and sequentially collects their summary info, full item list, and full rating list.
     """
-    print(f"   -> 开始采集用户ID: {user_id} 的完整信息...")
+    print(f"   -> Starting to collect full information for user ID: {user_id}...")
     profile_data = {}
     page = await context.new_page()
 
-    # 为各项异步任务准备Future和数据容器
+    # Prepare Futures and data containers for various async tasks
     head_api_future = asyncio.get_event_loop().create_future()
 
     all_items, all_ratings = [], []
     stop_item_scrolling, stop_rating_scrolling = asyncio.Event(), asyncio.Event()
 
     async def handle_response(response: Response):
-        # 捕获头部摘要API
+        # Capture user head summary API
         if "mtop.idle.web.user.page.head" in response.url and not head_api_future.done():
             try:
                 head_api_future.set_result(await response.json())
-                print(f"      [API捕获] 用户头部信息... 成功")
+                print(f"      [API Capture] User head info... Success")
             except Exception as e:
                 if not head_api_future.done(): head_api_future.set_exception(e)
 
-        # 捕获商品列表API
+        # Capture item list API
         elif "mtop.idle.web.xyh.item.list" in response.url:
             try:
                 data = await response.json()
                 all_items.extend(data.get('data', {}).get('cardList', []))
-                print(f"      [API捕获] 商品列表... 当前已捕获 {len(all_items)} 件")
+                print(f"      [API Capture] Item list... Currently captured {len(all_items)} items")
                 if not data.get('data', {}).get('nextPage', True):
                     stop_item_scrolling.set()
             except Exception as e:
                 stop_item_scrolling.set()
 
-        # 捕获评价列表API
+        # Capture rating list API
         elif "mtop.idle.web.trade.rate.list" in response.url:
             try:
                 data = await response.json()
                 all_ratings.extend(data.get('data', {}).get('cardList', []))
-                print(f"      [API捕获] 评价列表... 当前已捕获 {len(all_ratings)} 条")
+                print(f"      [API Capture] Rating list... Currently captured {len(all_ratings)} ratings")
                 if not data.get('data', {}).get('nextPage', True):
                     stop_rating_scrolling.set()
             except Exception as e:
@@ -215,55 +215,55 @@ async def scrape_user_profile(context, user_id: str) -> dict:
     page.on("response", handle_response)
 
     try:
-        # --- 任务1: 导航并采集头部信息 ---
+        # --- Task 1: Navigate and collect head info ---
         await page.goto(f"https://www.goofish.com/personal?userId={user_id}", wait_until="domcontentloaded", timeout=20000)
         head_data = await asyncio.wait_for(head_api_future, timeout=15)
         profile_data = await parse_user_head_data(head_data)
 
-        # --- 任务2: 滚动加载所有商品 (默认页面) ---
-        print("      [采集阶段] 开始采集该用户的商品列表...")
-        await random_sleep(2, 4) # 等待第一页商品API完成
+        # --- Task 2: Scroll to load all items (default page) ---
+        print("      [Collection Phase] Starting to collect the user's item list...")
+        await random_sleep(2, 4) # Wait for the first page of item API to complete
         while not stop_item_scrolling.is_set():
             await page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
             try:
                 await asyncio.wait_for(stop_item_scrolling.wait(), timeout=8)
             except asyncio.TimeoutError:
-                print("      [滚动超时] 商品列表可能已加载完毕。")
+                print("      [Scroll Timeout] Item list might be fully loaded.")
                 break
-        profile_data["卖家发布的商品列表"] = await _parse_user_items_data(all_items)
+        profile_data["seller_published_items"] = await _parse_user_items_data(all_items)
 
-        # --- 任务3: 点击并采集所有评价 ---
-        print("      [采集阶段] 开始采集该用户的评价列表...")
-        rating_tab_locator = page.locator("//div[text()='信用及评价']/ancestor::li")
+        # --- Task 3: Click and collect all ratings ---
+        print("      [Collection Phase] Starting to collect the user's rating list...")
+        rating_tab_locator = page.locator("//div[text()='信用及评价' or text()='Credit & Reviews']/ancestor::li")
         if await rating_tab_locator.count() > 0:
             await rating_tab_locator.click()
-            await random_sleep(3, 5) # 等待第一页评价API完成
+            await random_sleep(3, 5) # Wait for the first page of rating API to complete
 
             while not stop_rating_scrolling.is_set():
                 await page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
                 try:
                     await asyncio.wait_for(stop_rating_scrolling.wait(), timeout=8)
                 except asyncio.TimeoutError:
-                    print("      [滚动超时] 评价列表可能已加载完毕。")
+                    print("      [Scroll Timeout] Rating list might be fully loaded.")
                     break
 
-            profile_data['卖家收到的评价列表'] = await parse_ratings_data(all_ratings)
+            profile_data['seller_received_ratings'] = await parse_ratings_data(all_ratings)
             reputation_stats = await calculate_reputation_from_ratings(all_ratings)
             profile_data.update(reputation_stats)
         else:
-            print("      [警告] 未找到评价选项卡，跳过评价采集。")
+            print("      [Warning] Rating tab not found, skipping rating collection.")
 
     except Exception as e:
-        print(f"   [错误] 采集用户 {user_id} 信息时发生错误: {e}")
+        print(f"   [Error] An error occurred while collecting info for user {user_id}: {e}")
     finally:
         page.remove_listener("response", handle_response)
         await page.close()
-        print(f"   -> 用户 {user_id} 信息采集完成。")
+        print(f"   -> User {user_id} information collection complete.")
 
     return profile_data
 
 async def parse_user_head_data(head_json: dict) -> dict:
-    """解析用户头部API的JSON数据。"""
+    """Parses the JSON data from the user head API."""
     data = head_json.get('data', {})
     ylz_tags = await safe_get(data, 'module', 'base', 'ylzTags', default=[])
     seller_credit, buyer_credit = {}, {}
@@ -273,40 +273,40 @@ async def parse_user_head_data(head_json: dict) -> dict:
         elif await safe_get(tag, 'attributes', 'role') == 'buyer':
             buyer_credit = {'level': await safe_get(tag, 'attributes', 'level'), 'text': tag.get('text')}
     return {
-        "卖家昵称": await safe_get(data, 'module', 'base', 'displayName'),
-        "卖家头像链接": await safe_get(data, 'module', 'base', 'avatar', 'avatar'),
-        "卖家个性签名": await safe_get(data, 'module', 'base', 'introduction', default=''),
-        "卖家在售/已售商品数": await safe_get(data, 'module', 'tabs', 'item', 'number'),
-        "卖家收到的评价总数": await safe_get(data, 'module', 'tabs', 'rate', 'number'),
-        "卖家信用等级": seller_credit.get('text', '暂无'),
-        "买家信用等级": buyer_credit.get('text', '暂无')
+        "seller_nickname": await safe_get(data, 'module', 'base', 'displayName'),
+        "seller_avatar_link": await safe_get(data, 'module', 'base', 'avatar', 'avatar'),
+        "seller_bio": await safe_get(data, 'module', 'base', 'introduction', default=''),
+        "seller_items_count": await safe_get(data, 'module', 'tabs', 'item', 'number'),
+        "seller_ratings_count": await safe_get(data, 'module', 'tabs', 'rate', 'number'),
+        "seller_credit_level": seller_credit.get('text', 'Not available'),
+        "buyer_credit_level": buyer_credit.get('text', 'Not available')
     }
 
 
 async def parse_ratings_data(ratings_json: list) -> list:
-    """解析评价列表API的JSON数据。"""
+    """Parses the JSON data of the rating list API."""
     parsed_list = []
     for card in ratings_json:
         data = await safe_get(card, 'cardData', default={})
-        rate_tag = await safe_get(data, 'rateTagList', 0, 'text', default='未知角色')
+        rate_tag = await safe_get(data, 'rateTagList', 0, 'text', default='Unknown Role')
         rate_type = await safe_get(data, 'rate')
-        if rate_type == 1: rate_text = "好评"
-        elif rate_type == 0: rate_text = "中评"
-        elif rate_type == -1: rate_text = "差评"
-        else: rate_text = "未知"
+        if rate_type == 1: rate_text = "Positive"
+        elif rate_type == 0: rate_text = "Neutral"
+        elif rate_type == -1: rate_text = "Negative"
+        else: rate_text = "Unknown"
         parsed_list.append({
-            "评价ID": data.get('rateId'),
-            "评价内容": data.get('feedback'),
-            "评价类型": rate_text,
-            "评价来源角色": rate_tag,
-            "评价者昵称": data.get('raterUserNick'),
-            "评价时间": data.get('gmtCreate'),
-            "评价图片": await safe_get(data, 'pictCdnUrlList', default=[])
+            "rating_id": data.get('rateId'),
+            "rating_content": data.get('feedback'),
+            "rating_type": rate_text,
+            "rater_role": rate_tag,
+            "rater_nickname": data.get('raterUserNick'),
+            "rating_time": data.get('gmtCreate'),
+            "rating_images": await safe_get(data, 'pictCdnUrlList', default=[])
         })
     return parsed_list
 
-async def safe_get(data, *keys, default="暂无"):
-    """安全获取嵌套字典值"""
+async def safe_get(data, *keys, default="Not available"):
+    """Safely get a nested dictionary value."""
     for key in keys:
         try:
             data = data[key]
@@ -315,12 +315,12 @@ async def safe_get(data, *keys, default="暂无"):
     return data
 
 async def _parse_search_results_json(json_data: dict, source: str) -> list:
-    """解析搜索API的JSON数据，返回基础商品信息列表。"""
+    """Parses the JSON data from the search API, returning a list of basic item information."""
     page_data = []
     try:
         items = await safe_get(json_data, "data", "resultList", default=[])
         if not items:
-            print(f"LOG: ({source}) API响应中未找到商品列表 (resultList)。")
+            print(f"LOG: ({source}) No item list (resultList) found in API response.")
             if AI_DEBUG_MODE:
                 print(f"--- [SEARCH DEBUG] RAW JSON RESPONSE from {source} ---")
                 print(json.dumps(json_data, ensure_ascii=False, indent=2))
@@ -331,88 +331,88 @@ async def _parse_search_results_json(json_data: dict, source: str) -> list:
             main_data = await safe_get(item, "data", "item", "main", "exContent", default={})
             click_params = await safe_get(item, "data", "item", "main", "clickParam", "args", default={})
 
-            title = await safe_get(main_data, "title", default="未知标题")
+            title = await safe_get(main_data, "title", default="Unknown Title")
             price_parts = await safe_get(main_data, "price", default=[])
-            price = "".join([str(p.get("text", "")) for p in price_parts if isinstance(p, dict)]).replace("当前价", "").strip() if isinstance(price_parts, list) else "价格异常"
+            price = "".join([str(p.get("text", "")) for p in price_parts if isinstance(p, dict)]).replace("当前价", "").strip() if isinstance(price_parts, list) else "Abnormal Price"
             if "万" in price: price = f"¥{float(price.replace('¥', '').replace('万', '')) * 10000:.0f}"
-            area = await safe_get(main_data, "area", default="地区未知")
-            seller = await safe_get(main_data, "userNickName", default="匿名卖家")
+            area = await safe_get(main_data, "area", default="Unknown Area")
+            seller = await safe_get(main_data, "userNickName", default="Anonymous Seller")
             raw_link = await safe_get(item, "data", "item", "main", "targetUrl", default="")
             image_url = await safe_get(main_data, "picUrl", default="")
             pub_time_ts = click_params.get("publishTime", "")
-            item_id = await safe_get(main_data, "itemId", default="未知ID")
-            original_price = await safe_get(main_data, "oriPrice", default="暂无")
+            item_id = await safe_get(main_data, "itemId", default="Unknown ID")
+            original_price = await safe_get(main_data, "oriPrice", default="Not available")
             wants_count = await safe_get(click_params, "wantNum", default='NaN')
 
 
             tags = []
             if await safe_get(click_params, "tag") == "freeship":
-                tags.append("包邮")
+                tags.append("Free Shipping")
             r1_tags = await safe_get(main_data, "fishTags", "r1", "tagList", default=[])
             for tag_item in r1_tags:
                 content = await safe_get(tag_item, "data", "content", default="")
-                if "验货宝" in content:
-                    tags.append("验货宝")
+                if "验货宝" in content or "Inspection" in content:
+                    tags.append("Inspection Service")
 
             page_data.append({
-                "商品标题": title,
-                "当前售价": price,
-                "商品原价": original_price,
-                "“想要”人数": wants_count,
-                "商品标签": tags,
-                "发货地区": area,
-                "卖家昵称": seller,
-                "商品链接": raw_link.replace("fleamarket://", "https://www.goofish.com/"),
-                "发布时间": datetime.fromtimestamp(int(pub_time_ts)/1000).strftime("%Y-%m-%d %H:%M") if pub_time_ts.isdigit() else "未知时间",
-                "商品ID": item_id
+                "item_title": title,
+                "current_price": price,
+                "original_price": original_price,
+                "wants_count": wants_count,
+                "item_tags": tags,
+                "location": area,
+                "seller_nickname": seller,
+                "item_link": raw_link.replace("fleamarket://", "https://www.goofish.com/"),
+                "publish_time": datetime.fromtimestamp(int(pub_time_ts)/1000).strftime("%Y-%m-%d %H:%M") if pub_time_ts.isdigit() else "Unknown Time",
+                "item_id": item_id
             })
-        print(f"LOG: ({source}) 成功解析到 {len(page_data)} 条商品基础信息。")
+        print(f"LOG: ({source}) Successfully parsed {len(page_data)} basic item infos.")
         return page_data
     except Exception as e:
-        print(f"LOG: ({source}) JSON数据处理异常: {str(e)}")
+        print(f"LOG: ({source}) JSON data processing exception: {str(e)}")
         return []
 
 def format_registration_days(total_days: int) -> str:
     """
-    将总天数格式化为“X年Y个月”的字符串。
+    Formats the total number of days into a string like "X years Y months".
     """
     if not isinstance(total_days, int) or total_days <= 0:
-        return '未知'
+        return 'Unknown'
 
-    # 使用更精确的平均天数
+    # Use more precise average days
     DAYS_IN_YEAR = 365.25
-    DAYS_IN_MONTH = DAYS_IN_YEAR / 12  # 大约 30.44
+    DAYS_IN_MONTH = DAYS_IN_YEAR / 12  # Approx 30.44
 
-    # 计算年数
+    # Calculate years
     years = math.floor(total_days / DAYS_IN_YEAR)
 
-    # 计算剩余天数
+    # Calculate remaining days
     remaining_days = total_days - (years * DAYS_IN_YEAR)
 
-    # 计算月数，四舍五入
+    # Calculate months, rounding
     months = round(remaining_days / DAYS_IN_MONTH)
 
-    # 处理进位：如果月数等于12，则年数加1，月数归零
+    # Handle carry-over: if months is 12, add 1 to years and set months to 0
     if months == 12:
         years += 1
         months = 0
 
-    # 构建最终的输出字符串
+    # Build the final output string
     if years > 0 and months > 0:
-        return f"来闲鱼{years}年{months}个月"
+        return f"On Xianyu for {years} years and {months} months"
     elif years > 0 and months == 0:
-        return f"来闲鱼{years}年整"
+        return f"On Xianyu for {years} years"
     elif years == 0 and months > 0:
-        return f"来闲鱼{months}个月"
+        return f"On Xianyu for {months} months"
     else: # years == 0 and months == 0
-        return "来闲鱼不足一个月"
+        return "On Xianyu for less than a month"
 
 
-# --- AI分析及通知辅助函数 (从 ai_filter.py 移植并异步化改造) ---
+# --- AI Analysis & Notification Helper Functions (ported from ai_filter.py and made async) ---
 
 def retry_on_failure(retries=3, delay=5):
     """
-    一个通用的异步重试装饰器，增加了对HTTP错误的详细日志记录。
+    A generic async retry decorator with detailed logging for HTTP errors.
     """
     def decorator(func):
         @wraps(func)
@@ -421,23 +421,23 @@ def retry_on_failure(retries=3, delay=5):
                 try:
                     return await func(*args, **kwargs)
                 except (APIStatusError, HTTPError) as e:
-                    print(f"函数 {func.__name__} 第 {i + 1}/{retries} 次尝试失败，发生HTTP错误。")
+                    print(f"Function {func.__name__} failed on attempt {i + 1}/{retries} with an HTTP error.")
                     if hasattr(e, 'status_code'):
-                        print(f"  - 状态码 (Status Code): {e.status_code}")
+                        print(f"  - Status Code: {e.status_code}")
                     if hasattr(e, 'response') and hasattr(e.response, 'text'):
                         response_text = e.response.text
                         print(
-                            f"  - 返回值 (Response): {response_text[:300]}{'...' if len(response_text) > 300 else ''}")
+                            f"  - Response: {response_text[:300]}{'...' if len(response_text) > 300 else ''}")
                 except json.JSONDecodeError as e:
-                    print(f"函数 {func.__name__} 第 {i + 1}/{retries} 次尝试失败: JSON解析错误 - {e}")
+                    print(f"Function {func.__name__} failed on attempt {i + 1}/{retries}: JSON parsing error - {e}")
                 except Exception as e:
-                    print(f"函数 {func.__name__} 第 {i + 1}/{retries} 次尝试失败: {type(e).__name__} - {e}")
+                    print(f"Function {func.__name__} failed on attempt {i + 1}/{retries}: {type(e).__name__} - {e}")
 
                 if i < retries - 1:
-                    print(f"将在 {delay} 秒后重试...")
+                    print(f"Retrying in {delay} seconds...")
                     await asyncio.sleep(delay)
 
-            print(f"函数 {func.__name__} 在 {retries} 次尝试后彻底失败。")
+            print(f"Function {func.__name__} failed definitively after {retries} attempts.")
             return None
         return wrapper
     return decorator
@@ -445,9 +445,9 @@ def retry_on_failure(retries=3, delay=5):
 
 @retry_on_failure(retries=2, delay=3)
 async def _download_single_image(url, save_path):
-    """一个带重试的内部函数，用于异步下载单个图片。"""
+    """An internal function with retries to asynchronously download a single image."""
     loop = asyncio.get_running_loop()
-    # 使用 run_in_executor 运行同步的 requests 代码，避免阻塞事件循环
+    # Use run_in_executor to run synchronous requests code to avoid blocking the event loop
     response = await loop.run_in_executor(
         None,
         lambda: requests.get(url, headers=IMAGE_DOWNLOAD_HEADERS, timeout=20, stream=True)
@@ -460,7 +460,7 @@ async def _download_single_image(url, save_path):
 
 
 async def download_all_images(product_id, image_urls):
-    """异步下载一个商品的所有图片。如果图片已存在则跳过。"""
+    """Asynchronously downloads all images for a product. Skips if an image already exists."""
     if not image_urls:
         return []
 
@@ -482,54 +482,54 @@ async def download_all_images(product_id, image_urls):
             save_path = os.path.join(IMAGE_SAVE_DIR, file_name)
 
             if os.path.exists(save_path):
-                print(f"   [图片] 图片 {i + 1}/{total_images} 已存在，跳过下载: {os.path.basename(save_path)}")
+                print(f"   [Image] Image {i + 1}/{total_images} already exists, skipping download: {os.path.basename(save_path)}")
                 saved_paths.append(save_path)
                 continue
 
-            print(f"   [图片] 正在下载图片 {i + 1}/{total_images}: {url}")
+            print(f"   [Image] Downloading image {i + 1}/{total_images}: {url}")
             if await _download_single_image(url, save_path):
-                print(f"   [图片] 图片 {i + 1}/{total_images} 已成功下载到: {os.path.basename(save_path)}")
+                print(f"   [Image] Image {i + 1}/{total_images} downloaded successfully to: {os.path.basename(save_path)}")
                 saved_paths.append(save_path)
         except Exception as e:
-            print(f"   [图片] 处理图片 {url} 时发生错误，已跳过此图: {e}")
+            print(f"   [Image] An error occurred while processing image {url}, skipping this image: {e}")
 
     return saved_paths
 
 
 def encode_image_to_base64(image_path):
-    """将本地图片文件编码为 Base64 字符串。"""
+    """Encodes a local image file into a Base64 string."""
     if not image_path or not os.path.exists(image_path):
         return None
     try:
         with open(image_path, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode('utf-8')
     except Exception as e:
-        print(f"编码图片时出错: {e}")
+        print(f"Error encoding image: {e}")
         return None
 
 
 @retry_on_failure(retries=3, delay=5)
 async def send_ntfy_notification(product_data, reason):
-    """当发现推荐商品时，异步发送一个高优先级的 ntfy.sh 通知。"""
+    """Asynchronously sends a high-priority ntfy.sh notification when a recommended product is found."""
     if not NTFY_TOPIC_URL and not WX_BOT_URL:
-        print("警告：未在 .env 文件中配置 NTFY_TOPIC_URL 或 WX_BOT_URL，跳过通知。")
+        print("Warning: NTFY_TOPIC_URL or WX_BOT_URL is not configured in the .env file, skipping notification.")
         return
 
-    title = product_data.get('商品标题', 'N/A')
-    price = product_data.get('当前售价', 'N/A')
-    link = product_data.get('商品链接', '#')
+    title = product_data.get('item_title', 'N/A')
+    price = product_data.get('current_price', 'N/A')
+    link = product_data.get('item_link', '#')
     if PCURL_TO_MOBILE:
         mobile_link = convert_goofish_link(link)
-        message = f"价格: {price}\n原因: {reason}\n手机端链接: {mobile_link}\n电脑端链接: {link}"
+        message = f"Price: {price}\nReason: {reason}\nMobile Link: {mobile_link}\nPC Link: {link}"
     else:
-        message = f"价格: {price}\n原因: {reason}\n链接: {link}"
+        message = f"Price: {price}\nReason: {reason}\nLink: {link}"
 
-    notification_title = f"🚨 新推荐! {title[:30]}..."
+    notification_title = f"🚨 New Recommendation! {title[:30]}..."
 
-    # --- 发送 ntfy 通知 ---
+    # --- Send ntfy notification ---
     if NTFY_TOPIC_URL:
         try:
-            print(f"   -> 正在发送 ntfy 通知到: {NTFY_TOPIC_URL}")
+            print(f"   -> Sending ntfy notification to: {NTFY_TOPIC_URL}")
             loop = asyncio.get_running_loop()
             await loop.run_in_executor(
                 None,
@@ -544,11 +544,11 @@ async def send_ntfy_notification(product_data, reason):
                     timeout=10
                 )
             )
-            print("   -> ntfy 通知发送成功。")
+            print("   -> ntfy notification sent successfully.")
         except Exception as e:
-            print(f"   -> 发送 ntfy 通知失败: {e}")
+            print(f"   -> Failed to send ntfy notification: {e}")
 
-    # --- 发送企业微信机器人通知 ---
+    # --- Send WeChat Work bot notification ---
     if WX_BOT_URL:
         payload = {
             "msgtype": "text",
@@ -558,7 +558,7 @@ async def send_ntfy_notification(product_data, reason):
         }
 
         try:
-            print(f"   -> 正在发送企业微信通知到: {WX_BOT_URL}")
+            print(f"   -> Sending WeChat Work notification to: {WX_BOT_URL}")
             headers = { "Content-Type": "application/json" }
             loop = asyncio.get_running_loop()
             response = await loop.run_in_executor(
@@ -572,23 +572,23 @@ async def send_ntfy_notification(product_data, reason):
             )
             response.raise_for_status()
             result = response.json()
-            print(f"   -> 企业微信通知发送成功。响应: {result}")
+            print(f"   -> WeChat Work notification sent successfully. Response: {result}")
         except requests.exceptions.RequestException as e:
-            print(f"   -> 发送企业微信通知失败: {e}")
+            print(f"   -> Failed to send WeChat Work notification: {e}")
         except Exception as e:
-            print(f"   -> 发送企业微信通知时发生未知错误: {e}")
+            print(f"   -> An unknown error occurred while sending WeChat Work notification: {e}")
 
 @retry_on_failure(retries=5, delay=10)
 async def get_ai_analysis(product_data, image_paths=None, prompt_text=""):
-    """将完整的商品JSON数据和所有图片发送给 AI 进行分析（异步）。"""
-    item_info = product_data.get('商品信息', {})
-    product_id = item_info.get('商品ID', 'N/A')
+    """Sends the complete product JSON data and all images to the AI for analysis (asynchronously)."""
+    item_info = product_data.get('item_info', {})
+    product_id = item_info.get('item_id', 'N/A')
 
-    print(f"\n   [AI分析] 开始分析商品 #{product_id} (含 {len(image_paths or [])} 张图片)...")
-    print(f"   [AI分析] 标题: {item_info.get('商品标题', '无')}")
+    print(f"\n   [AI Analysis] Starting analysis for product #{product_id} (with {len(image_paths or [])} images)...")
+    print(f"   [AI Analysis] Title: {item_info.get('item_title', 'None')}")
 
     if not prompt_text:
-        print("   [AI分析] 错误：未提供AI分析所需的prompt文本。")
+        print("   [AI Analysis] Error: Prompt text for AI analysis was not provided.")
         return None
 
     product_details_json = json.dumps(product_data, ensure_ascii=False, indent=2)
@@ -604,7 +604,7 @@ async def get_ai_analysis(product_data, image_paths=None, prompt_text=""):
 
     combined_text_prompt = f"""{system_prompt}
 
-请基于你的专业知识和我的要求，分析以下完整的商品JSON数据：
+Please analyze the following complete product JSON data based on your expertise and my requirements:
 
 ```json
     {product_details_json}
@@ -635,8 +635,8 @@ async def get_ai_analysis(product_data, image_paths=None, prompt_text=""):
         print("---------------------\n")
 
     try:
-        # --- 新增代码：从Markdown代码块中提取JSON ---
-        # 寻找第一个 "{" 和最后一个 "}" 来捕获完整的JSON对象
+        # --- Added code: Extract JSON from a Markdown code block ---
+        # Find the first "{" and the last "}" to capture the complete JSON object
         json_start_index = ai_response_content.find('{')
         json_end_index = ai_response_content.rfind('}')
         
@@ -644,20 +644,21 @@ async def get_ai_analysis(product_data, image_paths=None, prompt_text=""):
             clean_json_str = ai_response_content[json_start_index : json_end_index + 1]
             return json.loads(clean_json_str)
         else:
-            # 如果找不到 "{" 或 "}"，说明响应格式异常，按原样尝试解析并准备捕获错误
+            # If "{" or "}" is not found, the response format is abnormal. Try parsing as is and prepare to catch the error.
             print("---!!! AI RESPONSE WARNING: Could not find JSON object markers '{' and '}' in the response. !!!---")
-            return json.loads(ai_response_content) # 这行很可能会再次触发错误，但保留逻辑完整性
-        # --- 修改结束 ---
+            return json.loads(ai_response_content) # This line will likely trigger an error again, but keeping for logical completeness
+        # --- End of modification ---
         
     except json.JSONDecodeError as e:
         print("---!!! AI RESPONSE PARSING FAILED (JSONDecodeError) !!!---")
-        print(f"原始返回值 (Raw response from AI):\n---\n{ai_response_content}\n---")
+        print(f"Raw response from AI:\n---\n{ai_response_content}\n---")
         raise e
         
 async def scrape_xianyu(task_config: dict, debug_limit: int = 0):
     """
-    【核心执行器】
-    根据单个任务配置，异步爬取闲鱼商品数据，并对每个新发现的商品进行实时的、独立的AI分析和通知。
+    【Core Executor】
+    Asynchronously scrapes Xianyu product data based on a single task configuration,
+    and performs real-time, independent AI analysis and notification for each newly found product.
     """
     keyword = task_config['keyword']
     max_pages = task_config.get('max_pages', 1)
@@ -672,28 +673,28 @@ async def scrape_xianyu(task_config: dict, debug_limit: int = 0):
     processed_links = set()
     output_filename = os.path.join("jsonl", f"{keyword.replace(' ', '_')}_full_data.jsonl")
     if os.path.exists(output_filename):
-        print(f"LOG: 发现已存在文件 {output_filename}，正在加载历史记录以去重...")
+        print(f"LOG: Existing file {output_filename} found, loading history for deduplication...")
         try:
             with open(output_filename, 'r', encoding='utf-8') as f:
                 for line in f:
                     try:
                         record = json.loads(line)
-                        link = record.get('商品信息', {}).get('商品链接', '')
+                        link = record.get('item_info', {}).get('item_link', '')
                         if link:
                             processed_links.add(get_link_unique_key(link))
                     except json.JSONDecodeError:
-                        print(f"   [警告] 文件中有一行无法解析为JSON，已跳过。")
-            print(f"LOG: 加载完成，已记录 {len(processed_links)} 个已处理过的商品。")
+                        print(f"   [Warning] A line in the file could not be parsed as JSON, skipped.")
+            print(f"LOG: Loading complete, {len(processed_links)} processed items recorded.")
         except IOError as e:
-            print(f"   [警告] 读取历史文件时发生错误: {e}")
+            print(f"   [Warning] An error occurred while reading the history file: {e}")
     else:
-        print(f"LOG: 输出文件 {output_filename} 不存在，将创建新文件。")
+        print(f"LOG: Output file {output_filename} does not exist, a new file will be created.")
 
     async with async_playwright() as p:
         if LOGIN_IS_EDGE:
             browser = await p.chromium.launch(headless=RUN_HEADLESS, channel="msedge")
         else:
-            # Docker环境内，使用Playwright自带的chromium；本地环境，使用系统安装的Chrome
+            # Inside Docker, use Playwright's built-in chromium; locally, use system's Chrome
             if RUNNING_IN_DOCKER:
                 browser = await p.chromium.launch(headless=RUN_HEADLESS)
             else:
@@ -702,62 +703,60 @@ async def scrape_xianyu(task_config: dict, debug_limit: int = 0):
         page = await context.new_page()
 
         try:
-            print("LOG: 步骤 1 - 直接导航到搜索结果页...")
-            # 使用 'q' 参数构建正确的搜索URL，并进行URL编码
+            print("LOG: Step 1 - Navigating directly to the search results page...")
+            # Build the correct search URL with the 'q' parameter and URL encode it
             params = {'q': keyword}
             search_url = f"https://www.goofish.com/search?{urlencode(params)}"
-            print(f"   -> 目标URL: {search_url}")
+            print(f"   -> Target URL: {search_url}")
 
-            # 使用 expect_response 在导航的同时捕获初始搜索的API数据
+            # Use expect_response to capture the initial search API data during navigation
             async with page.expect_response(lambda r: API_URL_PATTERN in r.url, timeout=30000) as response_info:
                 await page.goto(search_url, wait_until="domcontentloaded", timeout=60000)
 
             initial_response = await response_info.value
 
-            # 等待页面加载出关键筛选元素，以确认已成功进入搜索结果页
+            # Wait for key filter elements to load to confirm successful entry to the search results page
             await page.wait_for_selector('text=新发布', timeout=15000)
 
-            # --- 新增：检查是否存在验证弹窗 ---
+            # --- Added: Check for verification pop-up ---
             baxia_dialog = page.locator("div.baxia-dialog-mask")
             try:
-                # 等待弹窗在2秒内出现。如果出现，则执行块内代码。
+                # Wait for the pop-up to appear within 2 seconds. If it appears, execute the code block.
                 await baxia_dialog.wait_for(state='visible', timeout=2000)
                 print("\n==================== CRITICAL BLOCK DETECTED ====================")
-                print("检测到闲鱼反爬虫验证弹窗 (baxia-dialog)，无法继续操作。")
-                print("这通常是因为操作过于频繁或被识别为机器人。")
-                print("建议：")
-                print("1. 停止脚本一段时间再试。")
-                print("2. (推荐) 在 .env 文件中设置 RUN_HEADLESS=false，以非无头模式运行，这有助于绕过检测。")
-                print(f"任务 '{keyword}' 将在此处中止。")
+                print("Xianyu anti-scraping verification pop-up (baxia-dialog) detected, cannot continue.")
+                print("This is usually because operations are too frequent or identified as a bot.")
+                print("Suggestions:")
+                print("1. Stop the script for a while and try again.")
+                print("2. (Recommended) Set RUN_HEADLESS=false in the .env file to run in non-headless mode, which may help bypass detection.")
+                print(f"Task '{keyword}' will be aborted here.")
                 print("===================================================================")
                 await browser.close()
                 return processed_item_count
             except PlaywrightTimeoutError:
-                # 2秒内弹窗未出现，这是正常情况，继续执行
+                # Pop-up did not appear within 2 seconds, this is normal, continue execution
                 pass
-            # --- 结束新增 ---
+            # --- End of addition ---
 
             try:
                 await page.click("div[class*='closeIconBg']", timeout=3000)
-                print("LOG: 已关闭广告弹窗。")
+                print("LOG: Closed ad pop-up.")
             except PlaywrightTimeoutError:
-                print("LOG: 未检测到广告弹窗。")
+                print("LOG: No ad pop-up detected.")
 
             final_response = None
-            print("\nLOG: 步骤 2 - 应用筛选条件...")
+            print("\nLOG: Step 2 - Applying filters...")
             await page.click('text=新发布')
-            await random_sleep(2, 4) # 原来是 (1.5, 2.5)
+            await random_sleep(2, 4)
             async with page.expect_response(lambda r: API_URL_PATTERN in r.url, timeout=20000) as response_info:
                 await page.click('text=最新')
-                # --- 修改: 增加排序后的等待时间 ---
-                await random_sleep(4, 7) # 原来是 (3, 5)
+                await random_sleep(4, 7)
             final_response = await response_info.value
 
             if personal_only:
                 async with page.expect_response(lambda r: API_URL_PATTERN in r.url, timeout=20000) as response_info:
                     await page.click('text=个人闲置')
-                    # --- 修改: 将固定等待改为随机等待，并加长 ---
-                    await random_sleep(4, 6) # 原来是 asyncio.sleep(5)
+                    await random_sleep(4, 6)
                 final_response = await response_info.value
 
             if min_price or max_price:
@@ -765,70 +764,65 @@ async def scrape_xianyu(task_config: dict, debug_limit: int = 0):
                 if await price_container.is_visible():
                     if min_price:
                         await price_container.get_by_placeholder("¥").first.fill(min_price)
-                        # --- 修改: 将固定等待改为随机等待 ---
-                        await random_sleep(1, 2.5) # 原来是 asyncio.sleep(5)
+                        await random_sleep(1, 2.5)
                     if max_price:
                         await price_container.get_by_placeholder("¥").nth(1).fill(max_price)
-                        # --- 修改: 将固定等待改为随机等待 ---
-                        await random_sleep(1, 2.5) # 原来是 asyncio.sleep(5)
+                        await random_sleep(1, 2.5)
 
                     async with page.expect_response(lambda r: API_URL_PATTERN in r.url, timeout=20000) as response_info:
                         await page.keyboard.press('Tab')
-                        # --- 修改: 增加确认价格后的等待时间 ---
-                        await random_sleep(4, 7) # 原来是 asyncio.sleep(5)
+                        await random_sleep(4, 7)
                     final_response = await response_info.value
                 else:
-                    print("LOG: 警告 - 未找到价格输入容器。")
+                    print("LOG: Warning - Price input container not found.")
 
-            print("\nLOG: 所有筛选已完成，开始处理商品列表...")
+            print("\nLOG: All filters have been applied, starting to process the item list...")
 
             current_response = final_response if final_response and final_response.ok else initial_response
             for page_num in range(1, max_pages + 1):
                 if stop_scraping: break
-                print(f"\n--- 正在处理第 {page_num}/{max_pages} 页 ---")
+                print(f"\n--- Processing page {page_num}/{max_pages} ---")
 
                 if page_num > 1:
                     next_btn = page.locator("[class*='search-pagination-arrow-right']:not([disabled])")
                     if not await next_btn.count():
-                        print("LOG: 未找到可用的“下一页”按钮，停止翻页。")
+                        print("LOG: No available 'Next Page' button found, stopping pagination.")
                         break
                     try:
                         async with page.expect_response(lambda r: API_URL_PATTERN in r.url, timeout=20000) as response_info:
                             await next_btn.click()
-                            # --- 修改: 增加翻页后的等待时间 ---
-                            await random_sleep(5, 8) # 原来是 (1.5, 3.5)
+                            await random_sleep(5, 8)
                         current_response = await response_info.value
                     except PlaywrightTimeoutError:
-                        print(f"LOG: 翻页到第 {page_num} 页超时。")
+                        print(f"LOG: Timed out while turning to page {page_num}.")
                         break
 
                 if not (current_response and current_response.ok):
-                    print(f"LOG: 第 {page_num} 页响应无效，跳过。")
+                    print(f"LOG: Invalid response for page {page_num}, skipping.")
                     continue
 
-                basic_items = await _parse_search_results_json(await current_response.json(), f"第 {page_num} 页")
+                basic_items = await _parse_search_results_json(await current_response.json(), f"Page {page_num}")
                 if not basic_items: break
 
                 total_items_on_page = len(basic_items)
                 for i, item_data in enumerate(basic_items, 1):
                     if debug_limit > 0 and processed_item_count >= debug_limit:
-                        print(f"LOG: 已达到调试上限 ({debug_limit})，停止获取新商品。")
+                        print(f"LOG: Debug limit ({debug_limit}) reached, stopping fetching new items.")
                         stop_scraping = True
                         break
 
-                    unique_key = get_link_unique_key(item_data["商品链接"])
+                    unique_key = get_link_unique_key(item_data["item_link"])
                     if unique_key in processed_links:
-                        print(f"   -> [页内进度 {i}/{total_items_on_page}] 商品 '{item_data['商品标题'][:20]}...' 已存在，跳过。")
+                        print(f"   -> [Page Progress {i}/{total_items_on_page}] Item '{item_data['item_title'][:20]}...' already exists, skipping.")
                         continue
 
-                    print(f"-> [页内进度 {i}/{total_items_on_page}] 发现新商品，获取详情: {item_data['商品标题'][:30]}...")
-                    # --- 修改: 访问详情页前的等待时间，模拟用户在列表页上看了一会儿 ---
-                    await random_sleep(3, 6) # 原来是 (2, 4)
+                    print(f"-> [Page Progress {i}/{total_items_on_page}] New item found, getting details: {item_data['item_title'][:30]}...")
+                    await random_sleep(3, 6)
 
                     detail_page = await context.new_page()
                     try:
                         async with detail_page.expect_response(lambda r: DETAIL_API_URL_PATTERN in r.url, timeout=25000) as detail_info:
-                            await detail_page.goto(item_data["商品链接"], wait_until="domcontentloaded", timeout=25000)
+                            await detail_page.goto(item_data["item_link"], wait_until="domcontentloaded", timeout=25000)
 
                         detail_response = await detail_info.value
                         if detail_response.ok:
@@ -837,169 +831,146 @@ async def scrape_xianyu(task_config: dict, debug_limit: int = 0):
                             ret_string = str(await safe_get(detail_json, 'ret', default=[]))
                             if "FAIL_SYS_USER_VALIDATE" in ret_string:
                                 print("\n==================== CRITICAL BLOCK DETECTED ====================")
-                                print("检测到闲鱼反爬虫验证 (FAIL_SYS_USER_VALIDATE)，程序将终止。")
+                                print("Xianyu anti-scraping verification (FAIL_SYS_USER_VALIDATE) detected, the program will terminate.")
                                 long_sleep_duration = random.randint(300, 600)
-                                print(f"为避免账户风险，将执行一次长时间休眠 ({long_sleep_duration} 秒) 后再退出...")
+                                print(f"To avoid account risk, a long sleep of {long_sleep_duration} seconds will be performed before exiting...")
                                 await asyncio.sleep(long_sleep_duration)
-                                print("长时间休眠结束，现在将安全退出。")
+                                print("Long sleep finished, exiting safely now.")
                                 print("===================================================================")
                                 stop_scraping = True
                                 break
 
-                            # 解析商品详情数据并更新 item_data
                             item_do = await safe_get(detail_json, 'data', 'itemDO', default={})
                             seller_do = await safe_get(detail_json, 'data', 'sellerDO', default={})
 
                             reg_days_raw = await safe_get(seller_do, 'userRegDay', default=0)
                             registration_duration_text = format_registration_days(reg_days_raw)
 
-                            # --- START: 新增代码块 ---
-
-                            # 1. 提取卖家的芝麻信用信息
                             zhima_credit_text = await safe_get(seller_do, 'zhimaLevelInfo', 'levelName')
 
-                            # 2. 提取该商品的完整图片列表
                             image_infos = await safe_get(item_do, 'imageInfos', default=[])
                             if image_infos:
-                                # 使用列表推导式获取所有有效的图片URL
                                 all_image_urls = [img.get('url') for img in image_infos if img.get('url')]
                                 if all_image_urls:
-                                    # 用新的字段存储图片列表，替换掉旧的单个链接
-                                    item_data['商品图片列表'] = all_image_urls
-                                    # (可选) 仍然保留主图链接，以防万一
-                                    item_data['商品主图链接'] = all_image_urls[0]
+                                    item_data['item_image_list'] = all_image_urls
+                                    item_data['item_main_image_link'] = all_image_urls[0]
 
-                            # --- END: 新增代码块 ---
-                            item_data['“想要”人数'] = await safe_get(item_do, 'wantCnt', default=item_data.get('“想要”人数', 'NaN'))
-                            item_data['浏览量'] = await safe_get(item_do, 'browseCnt', default='-')
-                            # ...[此处可添加更多从详情页解析出的商品信息]...
+                            item_data['wants_count'] = await safe_get(item_do, 'wantCnt', default=item_data.get('wants_count', 'NaN'))
+                            item_data['views_count'] = await safe_get(item_do, 'browseCnt', default='-')
 
-                            # 调用核心函数采集卖家信息
                             user_profile_data = {}
                             user_id = await safe_get(seller_do, 'sellerId')
                             if user_id:
-                                # 新的、高效的调用方式:
                                 user_profile_data = await scrape_user_profile(context, str(user_id))
                             else:
-                                print("   [警告] 未能从详情API中获取到卖家ID。")
-                            user_profile_data['卖家芝麻信用'] = zhima_credit_text
-                            user_profile_data['卖家注册时长'] = registration_duration_text
+                                print("   [Warning] Could not get seller ID from detail API.")
+                            user_profile_data['seller_zhima_credit'] = zhima_credit_text
+                            user_profile_data['seller_registration_duration'] = registration_duration_text
 
-                            # 构建基础记录
                             final_record = {
-                                "爬取时间": datetime.now().isoformat(),
-                                "搜索关键字": keyword,
-                                "任务名称": task_config.get('task_name', 'Untitled Task'),
-                                "商品信息": item_data,
-                                "卖家信息": user_profile_data
+                                "crawl_time": datetime.now().isoformat(),
+                                "search_keyword": keyword,
+                                "task_name": task_config.get('task_name', 'Untitled Task'),
+                                "item_info": item_data,
+                                "seller_info": user_profile_data
                             }
 
-                            # --- START: Real-time AI Analysis & Notification ---
-                            print(f"   -> 开始对商品 #{item_data['商品ID']} 进行实时AI分析...")
-                            # 1. Download images
-                            image_urls = item_data.get('商品图片列表', [])
-                            downloaded_image_paths = await download_all_images(item_data['商品ID'], image_urls)
+                            print(f"   -> Starting real-time AI analysis for item #{item_data['item_id']}...")
+                            image_urls = item_data.get('item_image_list', [])
+                            downloaded_image_paths = await download_all_images(item_data['item_id'], image_urls)
 
-                            # 2. Get AI analysis
                             ai_analysis_result = None
                             if ai_prompt_text:
                                 try:
-                                    # 注意：这里我们将整个记录传给AI，让它拥有最全的上下文
                                     ai_analysis_result = await get_ai_analysis(final_record, downloaded_image_paths, prompt_text=ai_prompt_text)
                                     if ai_analysis_result:
                                         final_record['ai_analysis'] = ai_analysis_result
-                                        print(f"   -> AI分析完成。推荐状态: {ai_analysis_result.get('is_recommended')}")
+                                        print(f"   -> AI analysis complete. Recommendation status: {ai_analysis_result.get('is_recommended')}")
                                     else:
                                         final_record['ai_analysis'] = {'error': 'AI analysis returned None after retries.'}
                                 except Exception as e:
-                                    print(f"   -> AI分析过程中发生严重错误: {e}")
+                                    print(f"   -> A critical error occurred during AI analysis: {e}")
                                     final_record['ai_analysis'] = {'error': str(e)}
                             else:
-                                print("   -> 任务未配置AI prompt，跳过分析。")
+                                print("   -> AI prompt not configured for this task, skipping analysis.")
 
-                            # 3. Send notification if recommended
                             if ai_analysis_result and ai_analysis_result.get('is_recommended'):
-                                print(f"   -> 商品被AI推荐，准备发送通知...")
-                                await send_ntfy_notification(item_data, ai_analysis_result.get("reason", "无"))
-                            # --- END: Real-time AI Analysis & Notification ---
+                                print(f"   -> Item recommended by AI, preparing to send notification...")
+                                await send_ntfy_notification(item_data, ai_analysis_result.get("reason", "No reason provided"))
 
-                            # 4. 保存包含AI结果的完整记录
                             await save_to_jsonl(final_record, keyword)
 
                             processed_links.add(unique_key)
                             processed_item_count += 1
-                            print(f"   -> 商品处理流程完毕。累计处理 {processed_item_count} 个新商品。")
+                            print(f"   -> Item processing complete. Total processed new items: {processed_item_count}.")
 
-                            # --- 修改: 增加单个商品处理后的主要延迟 ---
-                            print("   [反爬] 执行一次主要的随机延迟以模拟用户浏览间隔...")
-                            await random_sleep(15, 30) # 原来是 (8, 15)，这是最重要的修改之一
+                            print("   [Anti-Scraping] Performing a major random delay to simulate user browsing interval...")
+                            await random_sleep(15, 30)
                         else:
-                            print(f"   错误: 获取商品详情API响应失败，状态码: {detail_response.status}")
+                            print(f"   Error: Failed to get item detail API response, status code: {detail_response.status}")
                             if AI_DEBUG_MODE:
-                                print(f"--- [DETAIL DEBUG] FAILED RESPONSE from {item_data['商品链接']} ---")
+                                print(f"--- [DETAIL DEBUG] FAILED RESPONSE from {item_data['item_link']} ---")
                                 try:
                                     print(await detail_response.text())
                                 except Exception as e:
-                                    print(f"无法读取响应内容: {e}")
+                                    print(f"Could not read response content: {e}")
                                 print("----------------------------------------------------")
 
                     except PlaywrightTimeoutError:
-                        print(f"   错误: 访问商品详情页或等待API响应超时。")
+                        print(f"   Error: Timed out visiting item detail page or waiting for API response.")
                     except Exception as e:
-                        print(f"   错误: 处理商品详情时发生未知错误: {e}")
+                        print(f"   Error: An unknown error occurred while processing item details: {e}")
                     finally:
                         await detail_page.close()
-                        # --- 修改: 增加关闭页面后的短暂整理时间 ---
-                        await random_sleep(2, 4) # 原来是 (1, 2.5)
+                        await random_sleep(2, 4)
 
-                # --- 新增: 在处理完一页所有商品后，翻页前，增加一个更长的“休息”时间 ---
                 if not stop_scraping and page_num < max_pages:
-                    print(f"--- 第 {page_num} 页处理完毕，准备翻页。执行一次页面间的长时休息... ---")
+                    print(f"--- Page {page_num} processing complete, preparing for next page. Executing a long delay between pages... ---")
                     await random_sleep(25, 50)
 
         except PlaywrightTimeoutError as e:
-            print(f"\n操作超时错误: 页面元素或网络响应未在规定时间内出现。\n{e}")
+            print(f"\nOperation timed out: A page element or network response did not appear in time.\n{e}")
         except Exception as e:
-            print(f"\n爬取过程中发生未知错误: {e}")
+            print(f"\nAn unknown error occurred during scraping: {e}")
         finally:
-            print("\nLOG: 任务执行完毕，浏览器将在5秒后自动关闭...")
+            print("\nLOG: Task execution finished, the browser will close in 5 seconds...")
             await asyncio.sleep(5)
             if debug_limit:
-                input("按回车键关闭浏览器...")
+                input("Press Enter to close the browser...")
             await browser.close()
 
     return processed_item_count
 
 async def main():
     parser = argparse.ArgumentParser(
-        description="闲鱼商品监控脚本，支持多任务配置和实时AI分析。",
+        description="Xianyu item monitoring script with multi-task configuration and real-time AI analysis.",
         epilog="""
-使用示例:
-  # 运行 config.json 中定义的所有任务
+Example usage:
+  # Run all enabled tasks defined in config.json
   python spider_v2.py
 
-  # 调试模式: 运行所有任务，但每个任务只处理前3个新发现的商品
+  # Debug mode: Run all tasks, but only process the first 3 newly found items for each task
   python spider_v2.py --debug-limit 3
 """,
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("--debug-limit", type=int, default=0, help="调试模式：每个任务仅处理前 N 个新商品（0 表示无限制）")
-    parser.add_argument("--config", type=str, default="config.json", help="指定任务配置文件路径（默认为 config.json）")
-    args = parser.parse_args()
+    parser.add_argument("--debug-limit", type=int, default=0, help="Debug mode: each task processes only the first N new items (0 for no limit)")
+    parser.add_argument("--config", type=str, default="config.json", help="Specify the task configuration file path (default: config.json)")
+    args = parser.parse_.parse_args()
 
     if not os.path.exists(STATE_FILE):
-        sys.exit(f"错误: 登录状态文件 '{STATE_FILE}' 不存在。请先运行 login.py 生成。")
+        sys.exit(f"Error: Login state file '{STATE_FILE}' not found. Please run login.py first to generate it.")
 
     if not os.path.exists(args.config):
-        sys.exit(f"错误: 配置文件 '{args.config}' 不存在。")
+        sys.exit(f"Error: Configuration file '{args.config}' not found.")
 
     try:
         with open(args.config, 'r', encoding='utf-8') as f:
             tasks_config = json.load(f)
     except (json.JSONDecodeError, IOError) as e:
-        sys.exit(f"错误: 读取或解析配置文件 '{args.config}' 失败: {e}")
+        sys.exit(f"Error: Failed to read or parse configuration file '{args.config}': {e}")
 
-    # 读取所有prompt文件内容
+    # Read all prompt file contents
     for task in tasks_config:
         if task.get("enabled", False) and task.get("ai_prompt_base_file") and task.get("ai_prompt_criteria_file"):
             try:
@@ -1008,46 +979,46 @@ async def main():
                 with open(task["ai_prompt_criteria_file"], 'r', encoding='utf-8') as f_criteria:
                     criteria_text = f_criteria.read()
                 
-                # 动态组合成最终的Prompt
+                # Dynamically combine into the final prompt
                 task['ai_prompt_text'] = base_prompt.replace("{{CRITERIA_SECTION}}", criteria_text)
 
             except FileNotFoundError as e:
-                print(f"警告: 任务 '{task['task_name']}' 的prompt文件缺失: {e}，该任务的AI分析将被跳过。")
+                print(f"Warning: Prompt file for task '{task['task_name']}' is missing: {e}. AI analysis for this task will be skipped.")
                 task['ai_prompt_text'] = ""
         elif task.get("enabled", False) and task.get("ai_prompt_file"):
             try:
                 with open(task["ai_prompt_file"], 'r', encoding='utf-8') as f:
                     task['ai_prompt_text'] = f.read()
             except FileNotFoundError:
-                print(f"警告: 任务 '{task['task_name']}' 的prompt文件 '{task['ai_prompt_file']}' 未找到，该任务的AI分析将被跳过。")
+                print(f"Warning: Prompt file '{task['ai_prompt_file']}' for task '{task['task_name']}' not found. AI analysis for this task will be skipped.")
                 task['ai_prompt_text'] = ""
 
-    print("\n--- 开始执行监控任务 ---")
+    print("\n--- Starting Monitoring Tasks ---")
     if args.debug_limit > 0:
-        print(f"** 调试模式已激活，每个任务最多处理 {args.debug_limit} 个新商品 **")
+        print(f"** Debug mode activated, each task will process a maximum of {args.debug_limit} new items **")
     print("--------------------")
 
     active_task_configs = [task for task in tasks_config if task.get("enabled", False)]
     if not active_task_configs:
-        print("配置文件中没有启用的任务，程序退出。")
+        print("No enabled tasks in the configuration file, exiting.")
         return
 
-    # 为每个启用的任务创建一个异步执行协程
+    # Create an async execution coroutine for each enabled task
     coroutines = []
     for task_conf in active_task_configs:
-        print(f"-> 任务 '{task_conf['task_name']}' 已加入执行队列。")
+        print(f"-> Task '{task_conf['task_name']}' has been added to the execution queue.")
         coroutines.append(scrape_xianyu(task_config=task_conf, debug_limit=args.debug_limit))
 
-    # 并发执行所有任务
+    # Concurrently execute all tasks
     results = await asyncio.gather(*coroutines, return_exceptions=True)
 
-    print("\n--- 所有任务执行完毕 ---")
+    print("\n--- All Tasks Execution Finished ---")
     for i, result in enumerate(results):
         task_name = active_task_configs[i]['task_name']
         if isinstance(result, Exception):
-            print(f"任务 '{task_name}' 因异常而终止: {result}")
+            print(f"Task '{task_name}' was terminated due to an exception: {result}")
         else:
-            print(f"任务 '{task_name}' 正常结束，本次运行共处理了 {result} 个新商品。")
+            print(f"Task '{task_name}' finished normally, processed {result} new items in this run.")
 
 if __name__ == "__main__":
     asyncio.run(main())

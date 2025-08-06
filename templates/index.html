@@ -1,33 +1,33 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>闲鱼智能监控机器人 - 管理后台</title>
+    <title>Xianyu Intelligent Monitoring Bot - Admin Panel</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
     <header>
-        <h1>闲鱼智能监控机器人 - 管理后台</h1>
+        <h1>Xianyu Intelligent Monitoring Bot - Admin Panel</h1>
         <div class="header-controls">
-            <div class="system-status">状态: <span id="status-indicator" class="status-stopped"></span><span id="status-text">已停止</span></div>
-            <button id="start-all-tasks" class="control-button">🚀 全部启动</button>
-            <button id="stop-all-tasks" class="control-button" style="display: none;">🛑 全部停止</button>
+            <div class="system-status">Status: <span id="status-indicator" class="status-stopped"></span><span id="status-text">Stopped</span></div>
+            <button id="start-all-tasks" class="control-button">🚀 Start All</button>
+            <button id="stop-all-tasks" class="control-button" style="display: none;">🛑 Stop All</button>
         </div>
     </header>
     <div class="container">
         <aside>
             <nav>
                 <ul>
-                    <li><a href="#tasks" class="nav-link active">任务管理</a></li>
-                    <li><a href="#results" class="nav-link">结果查看</a></li>
-                    <li><a href="#logs" class="nav-link">运行日志</a></li>
-                    <li><a href="#settings" class="nav-link">系统设置</a></li>
+                    <li><a href="#tasks" class="nav-link active">Task Management</a></li>
+                    <li><a href="#results" class="nav-link">Result Viewer</a></li>
+                    <li><a href="#logs" class="nav-link">Run Logs</a></li>
+                    <li><a href="#settings" class="nav-link">System Settings</a></li>
                 </ul>
             </nav>
         </aside>
         <main id="main-content">
-            <!-- 内容将根据侧边栏选择动态加载 -->
+            <!-- Content will be dynamically loaded based on sidebar selection -->
         </main>
     </div>
 
@@ -35,46 +35,46 @@
     <div id="add-task-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>创建新监控任务 (AI驱动)</h2>
+                <h2>Create New Monitoring Task (AI-Powered)</h2>
                 <button id="close-modal-btn" class="close-button">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="add-task-form">
                     <div class="form-group">
-                        <label for="task-name">任务名称</label>
-                        <input type="text" id="task-name" name="task_name" placeholder="例如：索尼 A7M4 相机" required>
+                        <label for="task-name">Task Name</label>
+                        <input type="text" id="task-name" name="task_name" placeholder="e.g., Sony A7M4 Camera" required>
                     </div>
                     <div class="form-group">
-                        <label for="keyword">搜索关键词</label>
-                        <input type="text" id="keyword" name="keyword" placeholder="例如：a7m4" required>
+                        <label for="keyword">Search Keyword</label>
+                        <input type="text" id="keyword" name="keyword" placeholder="e.g., a7m4" required>
                     </div>
                     <div class="form-group form-group-inline">
                         <div>
-                            <label for="min-price">价格范围 (可选)</label>
-                            <input type="number" id="min-price" name="min_price" placeholder="最低价">
+                            <label for="min-price">Price Range (Optional)</label>
+                            <input type="number" id="min-price" name="min_price" placeholder="Min Price">
                         </div>
                         <span>-</span>
                         <div>
                             <label for="max-price">&nbsp;</label>
-                            <input type="number" id="max-price" name="max_price" placeholder="最高价">
+                            <input type="number" id="max-price" name="max_price" placeholder="Max Price">
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="task-description">详细购买需求</label>
-                        <textarea id="task-description" name="description" rows="6" placeholder="请用自然语言详细描述你的购买需求，AI将根据此描述生成分析标准。例如：我想买一台95新以上的索尼A7M4相机，预算在10000到13000元之间，快门数要低于5000。必须是国行且配件齐全。优先考虑个人卖家..." required></textarea>
+                        <label for="task-description">Detailed Purchase Requirements</label>
+                        <textarea id="task-description" name="description" rows="6" placeholder="Describe your purchase requirements in detail using natural language. The AI will generate analysis criteria based on this description. For example: I want to buy a Sony A7M4 camera that is at least 95% new, with a budget between 10,000 and 13,000 yuan, and a shutter count below 5000. It must be a domestic model with all accessories included. Priority to personal sellers..." required></textarea>
                     </div>
                     <div class="form-group">
                         <label>
                             <input type="checkbox" id="personal-only" name="personal_only" checked>
-                            仅筛选个人闲置卖家
+                            Filter for personal sellers only
                         </label>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button id="cancel-add-task-btn" class="control-button">取消</button>
+                <button id="cancel-add-task-btn" class="control-button">Cancel</button>
                 <button id="save-new-task-btn" class="control-button primary-btn">
-                    <span class="btn-text">创建任务</span>
+                    <span class="btn-text">Create Task</span>
                     <span class="spinner" style="display: none;"></span>
                 </button>
             </div>
@@ -85,7 +85,7 @@
     <div id="json-viewer-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>AI 分析详情</h2>
+                <h2>AI Analysis Details</h2>
                 <button id="close-json-viewer-btn" class="close-button">&times;</button>
             </div>
             <div class="modal-body">

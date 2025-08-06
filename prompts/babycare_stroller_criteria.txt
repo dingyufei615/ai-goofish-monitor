@@ -1,0 +1,46 @@
+### **Part One: Core Analysis Principles (Not to be violated)**
+
+1.  **PERSONA-FIRST PRINCIPLE [V6.3 Core Upgrade]**: This is the supreme guiding principle for resolving the confusion between identifying "real moms" and "professional resellers." When evaluating a seller, your primary task is not to look for isolated suspicious points, but to **construct a coherent "behavioral persona" of the seller**. You must answer the core question: "What kind of story do all of this seller's actions (buying, selling, reviews, signature) tell when combined?"
+    *   **If the story is a coherent personal behavior** (e.g., a mom/dad gradually selling no-longer-needed items like a crib, clothes, and stroller as their child grows), then some superficial "suspicious points" (like listing multiple baby items in a short period) can be reasonably explained and **should not** be used as a basis for rejection.
+    *   **If the story is contradictory, incoherent, or clearly points to commercial activity** (e.g., purchase history consists of stroller accessories and broken strollers, while sales records show a large number of "90% new" strollers from various brands), then even if the seller is well-disguised, they must be identified as a merchant.
+
+2.  **HARD DEAL-BREAKER RULES**: The following are rejection conditions that must be strictly adhered to. If any one of these is not met, `is_recommended` must immediately be set to `false`.
+    *   **Brand/Model**: Must be a **babycare stroller**.
+    *   **Seller Credit**: `Seller Credit Level` must be **'Excellent'**.
+    *   **Shipping Method**: Must **support shipping**.
+    *   **Functional/Structural Hard Threshold**: There must be **no mention** of any "damage," "breakage," "functional abnormality," "missing parts," "safety hazards," or other descriptions that clearly indicate structural or functional problems.
+    *   **[V6.4 Logic Correction] Hygiene Condition**: There must be **no mention** of "mold," "large, unremovable stains," or other serious hygiene issues.
+
+3.  **IMAGE-FIRST PRINCIPLE**: If information from images (e.g., obvious cracks, stains) conflicts with the text description (e.g., "brand new, flawless"), **the image information must be used as the final basis for judgment**.
+
+4.  **[V6.4 Logic Correction] MISSING-INFO HANDLING**: For key information that can be asked about later (specifically **specific wear and tear** and **hidden damages**), if it is completely missing, the status should be `NEEDS_MANUAL_CHECK`, which **does not directly lead to rejection**. If the seller's persona is excellent, a "conditional recommendation" can be made.
+
+---
+
+### **Part Two: Detailed Analysis Guide**
+
+**A. Product Itself Assessment (Criteria Analysis):**
+
+1.  **Brand & Model (`brand_model`)**: Verify all text and images. If not a babycare stroller, then `FAIL`.
+2.  **Functionality (`functionality`)**: Check key functions like the stroller frame, wheels, brakes, folding mechanism. Any explicit description of functional damage is a `FAIL`.
+3.  **Condition & Appearance (`condition`)**: "90% new" and "normal signs of use" are acceptable. Carefully inspect pictures for frame scratches, fabric wear, and wheel wear.
+4.  **[V6.4 Logic Correction] Usage History (`history`)**: Strictly review all text and images for negative descriptions like "was broken," "repaired," "parts replaced," "is damaged," "not functioning properly." **If not mentioned at all, the status is `NEEDS_MANUAL_CHECK`**; if there is any evidence of functional damage or repair, it is a `FAIL`.
+
+**B. Seller and Market Assessment (Core)**
+
+5.  **In-depth Seller Background Analysis (`seller_type`) - [Decisive Evaluation]**:
+    *   **Core Objective**: Use the "Persona-First Principle" to determine if the seller is a [Individual Mom/Dad] or a [Merchant/Recycler].
+    *   **[V6.3 Upgrade] Red Flag List & Exemption Clauses**:
+        *   **Transaction Frequency**: Dense transactions in a short period, especially for strollers.
+            *   **[Bundle-Selling Exemption Clause]**: If transaction records show the seller is clearing out items from a specific stage of their child's growth (e.g., selling a stroller, crib, and small-sized clothing together), this is normal family behavior.
+        *   **Product Verticality**: The listed items are highly concentrated in strollers, or include multiple different brands of strollers.
+            *   **[Bundle-Selling Exemption Clause]**: If the seller is selling used items from their own child, with consistent brands and sizes, this clause does not apply. The key is to see if they are "clearing out baby gear" or "professionally shipping goods."
+        *   **"Jargon"**: Descriptions include terms like "recycle," "cleaned," "disinfected," "peers," "one stroller, one condition."
+            *   **[No Exemption]**: This is a strong signal of a merchant.
+        *   **Material Purchases**: Purchase history includes bulk stroller wheels, cushions, cleaning agents, broken strollers, etc.
+            *   **[No Exemption]**: This is decisive evidence of a merchant.
+        *   **Image/Title Style**: Image background is a warehouse or repair shop, or multiple strollers are photographed together; titles are templated, e.g., "XX Brand Stroller, 90% new, disinfected."
+            *   **[Home-Lover Exemption Clause]**: If the seller has taken clear photos of the stroller in a clean and tidy home environment, this is a plus. The key is whether the pictures convey a sense of "family use" or "bulk merchandise."
+
+6.  **Shipping Method (`shipping`)**: Explicitly stating "local pickup only" is a `FAIL`.
+7.  **Seller Credit (`seller_credit`)**: `Seller Credit Level` must be **'Excellent'**.
