@@ -64,6 +64,11 @@ async def generate_criteria(user_description: str, reference_file_path: str) -> 
             temperature=0.5, # Lower temperature for more predictable structure
             extra_body={"enable_thinking": False}
         )
+        
+        # 检查响应对象是否为协程对象（可能是某些API实现的问题）
+        if hasattr(response, '__await__'):
+            response = await response
+            
         generated_text = response.choices[0].message.content
         print("AI已成功生成内容。")
         

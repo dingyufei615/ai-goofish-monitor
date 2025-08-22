@@ -1094,6 +1094,10 @@ async def test_ai_settings(settings: dict, username: str = Depends(verify_creden
             max_tokens=10,
             extra_body={"enable_thinking": False}
         )
+        
+        # 检查响应对象是否为协程对象（可能是某些API实现的问题）
+        if hasattr(response, '__await__'):
+            response = await response
 
         return {
             "success": True,
@@ -1132,6 +1136,10 @@ async def test_ai_settings_backend(username: str = Depends(verify_credentials)):
             max_tokens=10,
             extra_body={"enable_thinking": False}
         )
+        
+        # 检查响应对象是否为协程对象（可能是某些API实现的问题）
+        if hasattr(response, '__await__'):
+            response = await response
 
         return {
             "success": True,

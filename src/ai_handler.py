@@ -537,6 +537,10 @@ async def get_ai_analysis(product_data, image_paths=None, prompt_text=""):
                 extra_body={"enable_thinking": False}
             )
 
+            # 检查响应对象是否为协程对象（可能是某些API实现的问题）
+            if hasattr(response, '__await__'):
+                response = await response
+
             ai_response_content = response.choices[0].message.content
 
             if AI_DEBUG_MODE:
