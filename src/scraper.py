@@ -2,9 +2,11 @@ import asyncio
 import json
 import os
 import random
+import re
 from datetime import datetime
 from urllib.parse import urlencode
 
+from src.embedding_filter import initialize_embedding_filter, filter_by_similarity
 from playwright.async_api import (
     Response,
     TimeoutError as PlaywrightTimeoutError,
@@ -40,6 +42,7 @@ from src.utils import (
     safe_get,
     save_to_jsonl,
 )
+from src.embedding_filter import initialize_embedding_filter, filter_item_by_embedding
 
 
 async def scrape_user_profile(context, user_id: str) -> dict:
@@ -149,6 +152,9 @@ async def scrape_xianyu(task_config: dict, debug_limit: int = 0):
     min_price = task_config.get('min_price')
     max_price = task_config.get('max_price')
     ai_prompt_text = task_config.get('ai_prompt_text', '')
+    
+    # 初始化embedding过滤器
+    initialize_embedding_filter()
 
     processed_item_count = 0
     stop_scraping = False
@@ -174,6 +180,9 @@ async def scrape_xianyu(task_config: dict, debug_limit: int = 0):
         print(f"LOG: 输出文件 {output_filename} 不存在，将创建新文件。")
 
     async with async_playwright() as p:
+        # 初始化embedding过滤器
+        await initialize_embedding_filter()
+        
         if LOGIN_IS_EDGE:
             browser = await p.chromium.launch(headless=RUN_HEADLESS, channel="msedge")
         else:
@@ -397,6 +406,65 @@ async def scrape_xianyu(task_config: dict, debug_limit: int = 0):
                                 "商品信息": item_data,
                                 "卖家信息": user_profile_data
                             }
+
+                            # --- START: 标题过滤逻辑 ---
+                            def filter_item_by_title(item_data, task_config):
+                                """
+                                根据标题过滤商品
+                                """
+                                title = item_data.get('商品标题', '')
+                                
+                                # 获取过滤配置
+                                include_keywords = task_config.get('title_include_keywords', [])
+                                exclude_keywords = task_config.get('title_exclude_keywords', [])
+                                regex_pattern = task_config.get('title_regex_pattern')
+                                
+                                # 如果没有配置过滤条件，不过滤
+                                if not include_keywords and not exclude_keywords and not regex_pattern:
+                                    return True
+                                
+                                # 包含关键词检查
+                                if include_keywords:
+                                    include_match = False
+                                    for keyword in include_keywords:
+                                        if keyword in title:
+                                            include_match = True
+                                            break
+                                    if not include_match:
+                                        return False
+                                
+                                # 排除关键词检查
+                                if exclude_keywords:
+                                    for keyword in exclude_keywords:
+                                        if keyword in title:
+                                            return False
+                                
+                                # 正则表达式检查
+                                if regex_pattern:
+                                    try:
+                                        if not re.search(regex_pattern, title):
+                                            return False
+                                    except re.error:
+                                        # 正则表达式有误，跳过正则匹配
+                                        pass
+                                
+                                return True
+
+                            # 应用标题过滤
+                            if not filter_item_by_title(item_data, task_config):
+                                print(f"   -> 商品 '{item_data['商品标题'][:30]}...' 未通过标题过滤，跳过AI分析。")
+                                processed_links.add(unique_key)
+                                processed_item_count += 1
+                                continue
+                            # --- END: 标题过滤逻辑 ---
+
+                            # --- START: Embedding相似度过滤逻辑 ---
+                            if not filter_by_similarity(item_data, task_config):
+                                print(f"   -> 商品 '{item_data['商品标题'][:30]}...' 未通过Embedding相似度过滤，跳过AI分析。")
+                                processed_links.add(unique_key)
+                                processed_item_count += 1
+                                continue
+                            # --- END: Embedding相似度过滤逻辑 ---
 
                             # --- START: Real-time AI Analysis & Notification ---
                             from src.config import SKIP_AI_ANALYSIS

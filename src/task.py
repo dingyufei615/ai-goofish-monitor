@@ -20,6 +20,9 @@ class Task(BaseModel):
     ai_prompt_base_file: str
     ai_prompt_criteria_file: str
     is_running: Optional[bool] = False
+    title_include_keywords: Optional[list[str]] = None
+    title_exclude_keywords: Optional[list[str]] = None
+    title_regex_pattern: Optional[str] = None
 
 
 class TaskUpdate(BaseModel):
@@ -35,6 +38,9 @@ class TaskUpdate(BaseModel):
     ai_prompt_base_file: Optional[str] = None
     ai_prompt_criteria_file: Optional[str] = None
     is_running: Optional[bool] = None
+    title_include_keywords: Optional[list[str]] = None
+    title_exclude_keywords: Optional[list[str]] = None
+    title_regex_pattern: Optional[str] = None
 
 
 async def add_task(task: Task) -> bool:

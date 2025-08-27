@@ -1,0 +1,23 @@
+{
+  "任务名称": "测试任务-带embedding过滤",
+  "启用状态": true,
+  "搜索关键词": "MacBook Air",
+  "任务描述": "测试embedding过滤功能",
+  "最大爬取页数": 1,
+  "仅个人闲置": true,
+  "最低价格": "3000",
+  "最高价格": "8000",
+  "AI基础Prompt文件": "prompts/base_prompt.txt",
+  "AI评判标准文件": "prompts/criteria_prompt.txt",
+  "标题包含关键词": ["MacBook", "笔记本"],
+  "标题排除关键词": ["配件", "壳"],
+  "标题正则表达式": "MacBook.*Air",
+  "embedding_filter": {
+    "reference_texts": [
+      "MacBook Air M1芯片笔记本电脑",
+      "苹果 MacBook Air M1 2020款",
+      "Apple MacBook Air M1 轻薄本"
+    ],
+    "threshold": 0.6
+  }
+}
